@@ -188,18 +188,18 @@ export default function BorradoresScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F2', // <--- Forzar color claro
+    backgroundColor: '#F2F2F2', 
   },
   scrollView: {
     flexGrow: 1,
-    backgroundColor: '#F2F2F2', // <--- Evita el fondo negro de la pantalla nativa
+    backgroundColor: '#F2F2F2', 
   },
   contentContainer: {
     paddingBottom: Spacing.six,
     backgroundColor: '#F2F2F2',
   },
   header: {
-    paddingTop: 50, // <--- Esto evita que la barra de estado del celular (arriba del todo) se vea negra o encimada
+    paddingTop: 50, 
     paddingBottom: Spacing.four,
     paddingHorizontal: Spacing.five,
     backgroundColor: '#035AA6',
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   cardContainer: {
     marginHorizontal: Spacing.four,
     marginTop: -Spacing.three,
-    backgroundColor: '#FFFFFF', // <--- Fondo blanco para la tarjeta flotante
+    backgroundColor: '#FFFFFF', 
     borderRadius: 20,
     padding: Spacing.four,
     shadowColor: '#000',
@@ -265,19 +265,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 12,
     fontWeight: '700',
-  },
-  cardContainer: {
-    marginHorizontal: Spacing.four,
-    marginTop: -Spacing.three,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: Spacing.four,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-    gap: Spacing.three,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
