@@ -36,7 +36,8 @@ function RootContent() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AnimatedSplashOverlay />
-      <Stack>
+      {/* Agregamos screenOptions={{ headerShown: false }} aquí */}
+      <Stack screenOptions={{ headerShown: false }}>
         <AppTabs />
       </Stack>
     </ThemeProvider>

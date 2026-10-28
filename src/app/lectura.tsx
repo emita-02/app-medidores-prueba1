@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Image, Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Crypto from 'expo-crypto';
+import { Ionicons } from '@expo/vector-icons';
 let ImagePicker: any = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -205,7 +206,7 @@ export default function LecturaScreen() {
         const campos = construirCampos();
         actualizarLecturaCompleta(idLocal, campos);
       } catch {
-        // Auto-guardado silencioso: no interrumpe al usuario
+        // Auto-guardado silencioso
       }
       setFormularioModificado(false);
     }, 2000);
@@ -221,7 +222,6 @@ export default function LecturaScreen() {
     construirCampos,
   ]);
 
-  // Cálculo de consumo mensual y detección de consumo anómalo
   useEffect(() => {
     Promise.resolve().then(() => {
       setConsumoMensual(null);
@@ -238,11 +238,7 @@ export default function LecturaScreen() {
       const lecturaValida = !isNaN(lecturaNum) && lecturaActual.trim() !== '' && lecturaNum >= 0;
       const esNormalOConLectura = esNormal || (esDano && lecturaValida);
 
-      if (!esNormalOConLectura) {
-        return;
-      }
-
-      if (!lecturaValida) {
+      if (!esNormalOConLectura || !lecturaValida) {
         return;
       }
 
@@ -282,7 +278,7 @@ export default function LecturaScreen() {
     if (status !== 'granted') {
       Alert.alert(
         'Permiso de cámara requerido',
-        'Para cumplir con el requerimiento, la aplicación necesita acceso a la cámara para tomar la foto del medidor cuando es obligatoria (medidor dañado o consumo anómalo). En los casos donde la foto no es obligatoria puedes continuar sin ella.',
+        'Para cumplir con el requerimiento, la aplicación necesita acceso a la cámara para tomar la foto del medidor cuando es obligatoria.',
         [
           { text: 'Cancelar', style: 'cancel' },
           { text: 'Abrir configuración', onPress: () => Linking.openSettings() },
@@ -302,7 +298,7 @@ export default function LecturaScreen() {
     const tienePermiso = await solicitarPermisoCamara();
     if (!tienePermiso) {
       if (fotoObligatoria) {
-        setError('No es posible continuar sin foto cuando el consumo es anómalo o el medidor está dañado. Otorga el permiso de cámara o intenta nuevamente.');
+        setError('No es posible continuar sin foto cuando el consumo es anómalo o el medidor está dañado.');
       }
       return;
     }
@@ -401,12 +397,12 @@ export default function LecturaScreen() {
     if (esNormal) {
       const lecturaNum = parseFloat(lecturaActual);
       if (lecturaActual.trim() === '' || isNaN(lecturaNum) || lecturaNum < 0) {
-        setError('Para estado normal, ingrese una lectura actual válida (número no negativo).');
+        setError('Para estado normal, ingrese una lectura actual válida.');
         return;
       }
       const ultimaLectura = medidor.ultima_lectura;
       if (ultimaLectura != null && Number.isFinite(ultimaLectura) && lecturaNum < ultimaLectura) {
-        setError('La lectura actual no puede ser inferior a la última lectura registrada. Verifique el valor ingresado.');
+        setError('La lectura actual no puede ser inferior a la última lectura registrada.');
         return;
       }
     }
@@ -429,7 +425,7 @@ export default function LecturaScreen() {
       }
       const ultimaLectura = medidor.ultima_lectura;
       if (ultimaLectura != null && Number.isFinite(ultimaLectura) && lecturaNum < ultimaLectura) {
-        setError('La lectura actual no puede ser inferior a la última lectura registrada. Verifique el valor ingresado.');
+        setError('La lectura actual no puede ser inferior a la última lectura registrada.');
         return;
       }
     }
@@ -446,12 +442,9 @@ export default function LecturaScreen() {
 
     setGuardando(true);
     try {
-      // Asegurar que la base de datos esta inicializada antes de cualquier operacion SQLite
       inicializarBaseDeDatos();
-
       let idLocalParaGuardar = idLocal;
 
-      // Si no hay borrador existente, crear uno nuevo
       if (!idLocalParaGuardar) {
         const id = await generarUUID();
         const borrador = crearLecturaBorrador(medidor.codigo, mes, anio, id);
@@ -468,7 +461,6 @@ export default function LecturaScreen() {
       }
 
       const campos = construirCampos();
-
       const actualizada = actualizarLecturaCompleta(idLocalParaGuardar, campos);
 
       if (!actualizada.ok) {
@@ -481,15 +473,13 @@ export default function LecturaScreen() {
         guardarFotoLectura(idLocalParaGuardar, fotoUri);
       }
 
-      // Marcar como pendiente de verificar (R4). Si hay conexión, se marca pendiente;
-      // si no hay, igual se guarda localmente como pendiente para verificar al recuperar conexión.
       try {
         const conectado = await hayConexion();
         marcarLecturaComoPendiente(idLocalParaGuardar);
         if (conectado) {
-          setExito('Lectura guardada y marcada como pendiente de verificar (con conexión). Se comparará con la anterior al sincronizar.');
+          setExito('Lectura guardada y marcada como pendiente de verificar (con conexión).');
         } else {
-          setExito('Lectura guardada sin conexión. Marcada como pendiente de verificar. Se comparará con la anterior cuando se recupere la conexión.');
+          setExito('Lectura guardada sin conexión. Marcada como pendiente de verificar.');
         }
       } catch {
         marcarLecturaComoPendiente(idLocalParaGuardar);
@@ -513,222 +503,250 @@ export default function LecturaScreen() {
       contentContainerStyle={styles.contentContainer}
       style={styles.scrollView}
       keyboardShouldPersistTaps="handled">
-      <ThemedView type="primaryDark" style={styles.header}>
-        <ThemedText type="title" style={styles.headerTitle} themeColor="text">
-          EPMAPS
-        </ThemedText>
-        <ThemedText type="smallBold" style={styles.headerSubtitle} themeColor="textSecondary">
-          Registro de lectura de medidor
-        </ThemedText>
-        <ThemedView style={styles.statusRow}>
-          <ThemedText type="small" style={styles.statusText} themeColor="text">
-            {isConnected === false ? '● Sin conexión' : '● Conectado'}
+      
+      {/* Cabecera institucional moderna */}
+      <View style={styles.header}>
+        <View>
+          <ThemedText type="title" style={styles.headerTitle} themeColor="text">
+            EPMAPS
           </ThemedText>
-          {pendingCount > 0 && (
+          <ThemedText type="smallBold" style={styles.headerSubtitle} themeColor="textSecondary">
+            Registro de lectura de medidor
+          </ThemedText>
+        </View>
+        <View style={styles.statusRowContainer}>
+          <View style={styles.statusRow}>
             <ThemedText type="small" style={styles.statusText} themeColor="text">
-              | Pendientes: {pendingCount}
+              {isConnected === false ? '● Sin conexión' : '● Conectado'}
+            </ThemedText>
+            {pendingCount > 0 && (
+              <ThemedText type="small" style={styles.statusText} themeColor="text">
+                | Pendientes: {pendingCount}
+              </ThemedText>
+            )}
+          </View>
+          {isConnected !== false && pendingCount > 0 && (
+            <Pressable
+              style={styles.syncButton}
+              onPress={() => {
+                sincronizarPendientes()
+                  .then(() => actualizarContador())
+                  .catch(() => actualizarContador());
+              }}>
+              <ThemedText type="smallBold" style={styles.syncButtonText} themeColor="text">
+                Sincronizar ahora
+              </ThemedText>
+            </Pressable>
+          )}
+        </View>
+      </View>
+
+      <View style={styles.cardContainer}>
+        {/* Tarjeta Detalle del Medidor */}
+        <View style={styles.subCard}>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="information-circle-outline" size={20} color="#035AA6" />
+            <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="primaryDark">
+              Detalle del medidor
+            </ThemedText>
+          </View>
+          {medidor && (
+            <View style={styles.datos}>
+              {filaDato('Código', medidor.codigo)}
+              {filaDato('Dirección', medidor.direccion)}
+              {filaDato('Sector', medidor.sector)}
+              {filaDato('Número de cuenta', medidor.numero_cuenta)}
+              {filaDato('Estado', medidor.estado)}
+            </View>
+          )}
+          {!medidor && codigo && (
+            <ThemedText type="small" style={styles.mensajeResultado} themeColor="textSecondary">
+              No hay información detallada del código {codigo} en caché local.
             </ThemedText>
           )}
-        </ThemedView>
-        {isConnected !== false && pendingCount > 0 && (
-          <Pressable
-            style={styles.syncButton}
-            onPress={() => {
-              sincronizarPendientes()
-                .then(() => actualizarContador())
-                .catch(() => actualizarContador());
-            }}>
-            <ThemedText type="smallBold" style={styles.syncButtonText} themeColor="text">
-              Sincronizar ahora
-            </ThemedText>
-          </Pressable>
-        )}
-      </ThemedView>
-
-      <ThemedView type="backgroundLight" style={styles.card}>
-        <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="primaryDark">
-          Medidor
-        </ThemedText>
-        {medidor && (
-          <>
-            {filaDato('Código', medidor.codigo)}
-            {filaDato('Dirección', medidor.direccion)}
-            {filaDato('Sector', medidor.sector)}
-            {filaDato('Número de cuenta', medidor.numero_cuenta)}
-            {filaDato('Estado', medidor.estado)}
-          </>
-        )}
-        {!medidor && codigo && (
-          <ThemedText type="small" style={styles.mensajeResultado} themeColor="textSecondary">
-            No hay información detallada del código {codigo} en caché local.
-          </ThemedText>
-        )}
-
-      {esBorradorExistente && idLocal && (
-        <ThemedView style={[styles.card, styles.cardBorradorExistente]}>
-          <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="primaryDark">
-            Borrador recuperado
-          </ThemedText>
-          <ThemedText type="small" style={styles.mensajeResultado} themeColor="textSecondary">
-            Se cargaron los valores guardados previamente para este medidor. Puede modificarlos y guardar los cambios.
-          </ThemedText>
-        </ThemedView>
-      )}
-      
-      <View style={styles.divisor} />
-        <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="primaryDark">
-          Datos de la lectura
-        </ThemedText>
-
-        <ThemedText type="smallBold" style={styles.label} themeColor="primaryDark">
-          Estado del medidor
-        </ThemedText>
-        <View style={styles.estadoRow}>
-          <Pressable
-            style={[styles.estadoBoton, estado === 'normal' && styles.estadoBotonActivo]}
-            onPress={() => handleSeleccionarEstado('normal')}>
-            <ThemedText type="smallBold" style={styles.estadoTexto} themeColor="primaryDark">
-              Normal
-            </ThemedText>
-          </Pressable>
-          <Pressable
-            style={[styles.estadoBoton, estado === 'inaccesible' && styles.estadoBotonActivo]}
-            onPress={() => handleSeleccionarEstado('inaccesible')}>
-            <ThemedText type="smallBold" style={styles.estadoTexto} themeColor="primaryDark">
-              Inaccesible
-            </ThemedText>
-          </Pressable>
-          <Pressable
-            style={[styles.estadoBoton, estado === 'dano' && styles.estadoBotonActivo]}
-            onPress={() => handleSeleccionarEstado('dano')}>
-            <ThemedText type="smallBold" style={styles.estadoTexto} themeColor="primaryDark">
-              Dañado
-            </ThemedText>
-          </Pressable>
         </View>
 
-        {esNormal && (
-          <>
-            <ThemedText type="smallBold" style={[styles.label, styles.mt]} themeColor="primaryDark">
-              Lectura actual
+        {esBorradorExistente && idLocal && (
+          <View style={[styles.subCard, styles.cardBorradorExistente]}>
+            <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="primaryDark">
+              Borrador recuperado
             </ThemedText>
-            <TextInput
-              style={styles.input}
-              value={lecturaActual}
-              onChangeText={(valor) => {
-                setLecturaActual(valor);
-                setFormularioModificado(true);
-              }}
-              placeholder="0"
-              keyboardType="numeric"
-              autoComplete="off"
-              spellCheck={false}
-            />
-            {esNormal && lecturaActual.trim() === '' && (
-              <ThemedText type="small" style={styles.campoRequerido} themeColor="error">
-                Campo obligatorio para estado normal.
-              </ThemedText>
-            )}
-          </>
+            <ThemedText type="small" style={styles.mensajeResultado} themeColor="textSecondary">
+              Se cargaron los valores guardados previamente para este medidor. Puede modificarlos y guardar los cambios.
+            </ThemedText>
+          </View>
         )}
-
-        {esInaccesible && (
-          <>
-            <ThemedText type="smallBold" style={[styles.label, styles.mt]} themeColor="primaryDark">
-              Motivo de inaccesibilidad
+      
+        {/* Tarjeta Datos de Lectura */}
+        <View style={styles.subCard}>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="create-outline" size={20} color="#035AA6" />
+            <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="primaryDark">
+              Datos de la lectura
             </ThemedText>
-            <TextInput
-              style={styles.input}
-              value={motivoInaccesibilidad}
-              onChangeText={(valor) => {
-                setMotivoInaccesibilidad(valor);
-                setFormularioModificado(true);
-              }}
-              placeholder="Ej. cerradura bloqueada, acceso denegado"
-              autoComplete="off"
-              spellCheck={false}
-            />
-            {!motivoInaccesibilidad.trim() && (
-              <ThemedText type="small" style={styles.campoRequerido} themeColor="error">
-                Campo obligatorio para estado inaccesible.
+          </View>
+
+          <ThemedText type="smallBold" style={styles.label} themeColor="primaryDark">
+            Estado del medidor
+          </ThemedText>
+          <View style={styles.estadoRow}>
+            <Pressable
+              style={[styles.estadoBoton, estado === 'normal' && styles.estadoBotonActivo]}
+              onPress={() => handleSeleccionarEstado('normal')}>
+              <ThemedText type="smallBold" style={[styles.estadoTexto, estado === 'normal' && styles.estadoTextoActivo]}>
+                Normal
               </ThemedText>
-            )}
-          </>
-        )}
-
-        {esDano && (
-          <>
-            <ThemedText type="smallBold" style={[styles.label, styles.mt]} themeColor="primaryDark">
-              Descripción del daño
-            </ThemedText>
-            <TextInput
-              style={styles.input}
-              value={descripcionDano}
-              onChangeText={(valor) => {
-                setDescripcionDano(valor);
-                setFormularioModificado(true);
-              }}
-              placeholder="Ej. medidor roto, fuga en la conexión"
-              autoComplete="off"
-              spellCheck={false}
-            />
-            {!descripcionDano.trim() && (
-              <ThemedText type="small" style={styles.campoRequerido} themeColor="error">
-                Campo obligatorio para estado dañado.
+            </Pressable>
+            <Pressable
+              style={[styles.estadoBoton, estado === 'inaccesible' && styles.estadoBotonActivo]}
+              onPress={() => handleSeleccionarEstado('inaccesible')}>
+              <ThemedText type="smallBold" style={[styles.estadoTexto, estado === 'inaccesible' && styles.estadoTextoActivo]}>
+                Inaccesible
               </ThemedText>
-            )}
-            <ThemedText type="smallBold" style={[styles.label, styles.mt]} themeColor="primaryDark">
-              Lectura actual (opcional)
-            </ThemedText>
-            <TextInput
-              style={styles.input}
-              value={lecturaActual}
-              onChangeText={(valor) => {
-                setLecturaActual(valor);
-                setFormularioModificado(true);
-              }}
-              placeholder="0"
-              keyboardType="numeric"
-              autoComplete="off"
-              spellCheck={false}
-            />
-          </>
-        )}
+            </Pressable>
+            <Pressable
+              style={[styles.estadoBoton, estado === 'dano' && styles.estadoBotonActivo]}
+              onPress={() => handleSeleccionarEstado('dano')}>
+              <ThemedText type="smallBold" style={[styles.estadoTexto, estado === 'dano' && styles.estadoTextoActivo]}>
+                Dañado
+              </ThemedText>
+            </Pressable>
+          </View>
 
-                {!esInaccesible && (
-                  <>
-                    {(consumoMensual !== null || lecturaMenorAnterior || datosInsuficientes) && (
-                      <ThemedView style={[styles.card, styles.cardConsumo]}>
-                        <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="text">
-                          Consumo mensual
-                        </ThemedText>
-                        {lecturaMenorAnterior && (
-                          <ThemedView style={styles.warningBanner}>
-                            <ThemedText type="small" style={styles.warningText} themeColor="text">
-                              La lectura actual es menor que la última lectura registrada. Verifique el valor ingresado antes de guardar.
-                            </ThemedText>
-                          </ThemedView>
-                        )}
-                        {datosInsuficientes && (
-                          <ThemedView style={styles.warningBanner}>
-                            <ThemedText type="small" style={styles.warningText} themeColor="text">
-                              No se puede determinar el consumo con certeza: faltan datos de referencia (última lectura o promedio mensual). Es posible continuar, pero se recomienda validar los valores.
-                            </ThemedText>
-                          </ThemedView>
-                        )}
-                        {consumoMensual !== null && !lecturaMenorAnterior && !datosInsuficientes && (
-                  <>
-                    <ThemedText type="small" style={styles.consumoTexto} themeColor="text">
-                      Consumo mensual: {consumoMensual.toFixed(2)}
-                    </ThemedText>
-                    {esAnomalia && (
-                      <>
-                        <ThemedView style={styles.alertBanner}>
-                          <ThemedText type="smallBold" style={styles.alertTitle} themeColor="text">
+          {esNormal && (
+            <>
+              <ThemedText type="smallBold" style={[styles.label, styles.mt]} themeColor="primaryDark">
+                Lectura actual
+              </ThemedText>
+              <View style={styles.inputContainer}>
+                <Ionicons name="speedometer-outline" size={20} color="#035AA6" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={lecturaActual}
+                  onChangeText={(valor) => {
+                    setLecturaActual(valor);
+                    setFormularioModificado(true);
+                  }}
+                  placeholder="0"
+                  placeholderTextColor="#999"
+                  keyboardType="numeric"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </View>
+              {esNormal && lecturaActual.trim() === '' && (
+                <ThemedText type="small" style={styles.campoRequerido} themeColor="error">
+                  Campo obligatorio para estado normal.
+                </ThemedText>
+              )}
+            </>
+          )}
+
+          {esInaccesible && (
+            <>
+              <ThemedText type="smallBold" style={[styles.label, styles.mt]} themeColor="primaryDark">
+                Motivo de inaccesibilidad
+              </ThemedText>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  value={motivoInaccesibilidad}
+                  onChangeText={(valor) => {
+                    setMotivoInaccesibilidad(valor);
+                    setFormularioModificado(true);
+                  }}
+                  placeholder="Ej. cerradura bloqueada, acceso denegado"
+                  placeholderTextColor="#999"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </View>
+              {!motivoInaccesibilidad.trim() && (
+                <ThemedText type="small" style={styles.campoRequerido} themeColor="error">
+                  Campo obligatorio para estado inaccesible.
+                </ThemedText>
+              )}
+            </>
+          )}
+
+          {esDano && (
+            <>
+              <ThemedText type="smallBold" style={[styles.label, styles.mt]} themeColor="primaryDark">
+                Descripción del daño
+              </ThemedText>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  value={descripcionDano}
+                  onChangeText={(valor) => {
+                    setDescripcionDano(valor);
+                    setFormularioModificado(true);
+                  }}
+                  placeholder="Ej. medidor roto, fuga en la conexión"
+                  placeholderTextColor="#999"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </View>
+              {!descripcionDano.trim() && (
+                <ThemedText type="small" style={styles.campoRequerido} themeColor="error">
+                  Campo obligatorio para estado dañado.
+                </ThemedText>
+              )}
+              <ThemedText type="smallBold" style={[styles.label, styles.mt]} themeColor="primaryDark">
+                Lectura actual (opcional)
+              </ThemedText>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  value={lecturaActual}
+                  onChangeText={(valor) => {
+                    setLecturaActual(valor);
+                    setFormularioModificado(true);
+                  }}
+                  placeholder="0"
+                  placeholderTextColor="#999"
+                  keyboardType="numeric"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </View>
+            </>
+          )}
+
+          {!esInaccesible && (
+            <>
+              {(consumoMensual !== null || lecturaMenorAnterior || datosInsuficientes) && (
+                <View style={[styles.subCard, styles.cardConsumo]}>
+                  <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="text">
+                    Consumo mensual
+                  </ThemedText>
+                  {lecturaMenorAnterior && (
+                    <View style={styles.warningBanner}>
+                      <ThemedText type="small" style={styles.warningText} themeColor="text">
+                        La lectura actual es menor que la última lectura registrada. Verifique el valor ingresado.
+                      </ThemedText>
+                    </View>
+                  )}
+                  {datosInsuficientes && (
+                    <View style={styles.warningBanner}>
+                      <ThemedText type="small" style={styles.warningText} themeColor="text">
+                        No se puede determinar el consumo con certeza: faltan datos de referencia.
+                      </ThemedText>
+                    </View>
+                  )}
+                  {consumoMensual !== null && !lecturaMenorAnterior && !datosInsuficientes && (
+                    <>
+                      <ThemedText type="small" style={styles.consumoTexto} themeColor="text">
+                        Consumo mensual: {consumoMensual.toFixed(2)} M³
+                      </ThemedText>
+                      {esAnomalia && (
+                        <View style={styles.alertBanner}>
+                          <ThemedText type="smallBold" style={styles.alertTitle} themeColor="error">
                             ⚠ Consumo anómalo detectado
                           </ThemedText>
                           <ThemedText type="small" style={styles.alertDetail} themeColor="text">
-                            Consumo mensual: {consumoMensual.toFixed(2)} &nbsp;|&nbsp; Promedio mensual: {medidor?.consumo_promedio_mensual?.toFixed(2) ?? '—'} &nbsp;|&nbsp; Umbral (3× promedio): {umbralAnomalia?.toFixed(2) ?? '—'}
+                            Consumo: {consumoMensual.toFixed(2)} | Promedio: {medidor?.consumo_promedio_mensual?.toFixed(2) ?? '—'}
                           </ThemedText>
                           <Pressable style={styles.confirmRow} onPress={() => setConfirmacionRevisada(!confirmacionRevisada)}>
                             <ThemedText type="small" style={styles.confirmTexto} themeColor="text">
@@ -740,23 +758,27 @@ export default function LecturaScreen() {
                               Debe confirmar la revisión antes de guardar.
                             </ThemedText>
                           )}
-                        </ThemedView>
-                      </>
-                    )}
-                  </>
-                )}
-              </ThemedView>
-            )}
-          </>
-        )}
-        <View style={styles.divisor} />
-        <ThemedView type="backgroundLight" style={[styles.card, { marginTop: Spacing.three }]}>
-          <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="primaryDark">
-            Foto del medidor
-          </ThemedText>
+                        </View>
+                      )}
+                    </>
+                  )}
+                </View>
+              )}
+            </>
+          )}
+        </View>
+
+        {/* Tarjeta Foto del Medidor */}
+        <View style={styles.subCard}>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="camera-outline" size={20} color="#035AA6" />
+            <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="primaryDark">
+              Foto del medidor
+            </ThemedText>
+          </View>
           <ThemedText type="small" style={styles.mensajeResultado} themeColor="textSecondary">
             {fotoObligatoria
-              ? 'Obligatoria (medidor dañado o consumo anómalo). Se conservará en el teléfono hasta que se envíe la lectura.'
+              ? 'Obligatoria (medidor dañado o consumo anómalo).'
               : 'Opcional en este caso.'}
           </ThemedText>
           {fotoUri ? (
@@ -780,24 +802,24 @@ export default function LecturaScreen() {
               Se requiere foto para guardar esta lectura.
             </ThemedText>
           )}
-        </ThemedView>
+        </View>
 
         {error && (
-          <ThemedView style={styles.errorBanner}>
+          <View style={styles.errorBanner}>
             <ThemedText type="small" style={styles.errorText} themeColor="text">
               {error}
             </ThemedText>
-          </ThemedView>
+          </View>
         )}
 
         {exito && (
-          <ThemedView style={styles.exitoBanner}>
+          <View style={styles.exitoBanner}>
             <ThemedText type="small" style={styles.exitoText} themeColor="text">
               {exito}
             </ThemedText>
-          </ThemedView>
+          </View>
         )}
-        <View style={styles.divisor} />
+
         <Pressable
           style={[styles.button, guardando && styles.buttonDisabled]}
           disabled={guardando}
@@ -812,250 +834,294 @@ export default function LecturaScreen() {
             Volver a la consulta
           </ThemedText>
         </Pressable>
-      </ThemedView>
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.light.backgroundLight,
-  },
   scrollView: {
-    flexGrow: 1,
+    flex: 1,
+    backgroundColor: '#F2F2F2',
   },
   contentContainer: {
-    paddingHorizontal: Spacing.half,
     paddingBottom: Spacing.six,
-    gap: Spacing.half,
   },
   header: {
     paddingVertical: Spacing.four,
     paddingHorizontal: Spacing.five,
-    alignItems: 'center',
+    backgroundColor: '#035AA6',
   },
   headerTitle: {
-    fontSize: 32,
-    fontWeight: 700,
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 1,
   },
   headerSubtitle: {
-    marginTop: Spacing.half,
-    fontSize: 14,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#F2F2F2',
+    letterSpacing: 2,
+    marginTop: 2,
+  },
+  statusRowContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.three,
   },
   statusRow: {
     flexDirection: 'row',
     gap: Spacing.two,
-    marginTop: Spacing.two,
   },
   statusText: {
     fontSize: 12,
     color: '#ffffff',
+    fontWeight: '600',
   },
   syncButton: {
-    marginTop: Spacing.two,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one,
-    borderRadius: Spacing.one,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   syncButtonText: {
     color: '#ffffff',
     fontSize: 12,
+    fontWeight: '700',
   },
-  card: {
-    paddingHorizontal: Spacing.five,
-    paddingBottom: Spacing.six,
+  cardContainer: {
+    marginHorizontal: Spacing.four,
+    marginTop: -Spacing.three,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: Spacing.four,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
     gap: Spacing.four,
   },
+  subCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    padding: Spacing.four,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    marginBottom: Spacing.three,
+  },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 700,
-    alignSelf: 'center',
+    fontSize: 16,
+    fontWeight: '700',
   },
   fila: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: Spacing.one,
+    paddingVertical: 6,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#e5e5e5',
+    borderBottomColor: '#F1F5F9',
   },
   etiqueta: {
-    color: Colors.light.text,
+    color: '#64748B',
     flex: 1,
     paddingRight: Spacing.two,
+    fontSize: 13,
   },
   valor: {
-    fontSize: 14,
-    color: Colors.light.text,
+    fontSize: 13,
+    color: '#0F172A',
     flexShrink: 1,
     textAlign: 'right',
+    fontWeight: '600',
   },
   label: {
-    fontSize: 14,
-    fontWeight: 800,
+    fontSize: 13,
+    fontWeight: '700',
     marginBottom: Spacing.half,
   },
   mt: {
-    marginTop: Spacing.four,
+    marginTop: Spacing.three,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    minHeight: 52,
+    paddingHorizontal: Spacing.three,
+  },
+  inputIcon: {
+    marginRight: Spacing.two,
   },
   input: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#cccccc',
-    borderRadius: Spacing.two,
-    paddingVertical: Spacing.three,
-    paddingHorizontal: Spacing.three,
+    flex: 1,
     fontSize: 16,
-    color: '#000000',
-    minHeight: 52,
+    color: '#1E293B',
+    paddingVertical: 0,
   },
   campoRequerido: {
     marginTop: Spacing.half,
-    marginBottom: Spacing.two,
+    fontSize: 12,
+    fontWeight: '600',
   },
   estadoRow: {
     flexDirection: 'row',
     gap: Spacing.two,
-    marginBottom: Spacing.two,
   },
   estadoBoton: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: Spacing.three,
     borderWidth: 1,
-    borderColor: '#cccccc',
-    borderRadius: Spacing.two,
-    backgroundColor: '#ffffff',
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
   },
   estadoBotonActivo: {
-    backgroundColor: Colors.light.primary,
-    borderColor: Colors.light.primary,
+    backgroundColor: '#035AA6',
+    borderColor: '#035AA6',
   },
   estadoTexto: {
-    fontSize: 14,
-    fontWeight: 700,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  estadoTextoActivo: {
+    color: '#FFFFFF',
   },
   errorBanner: {
-    backgroundColor: '#fdecea',
+    backgroundColor: '#FEE2E2',
     borderWidth: 1,
-    borderColor: Colors.light.error,
-    borderRadius: Spacing.two,
+    borderColor: '#D93030',
+    borderRadius: 12,
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.three,
-    marginTop: Spacing.two,
   },
   errorText: {
-    color: Colors.light.error,
-    fontSize: 14,
+    color: '#D93030',
+    fontSize: 13,
+    fontWeight: '600',
   },
   exitoBanner: {
-    backgroundColor: '#e7f4ea',
+    backgroundColor: '#E7F4EA',
     borderWidth: 1,
-    borderColor: '#2e8b57',
-    borderRadius: Spacing.two,
+    borderColor: '#2E8B57',
+    borderRadius: 12,
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.three,
-    marginTop: Spacing.two,
   },
   exitoText: {
-    color: '#1e6b43',
-    fontSize: 14,
+    color: '#1E6B43',
+    fontSize: 13,
+    fontWeight: '600',
   },
   button: {
-    backgroundColor: Colors.light.primary,
-    borderRadius: Spacing.two,
+    backgroundColor: '#035AA6',
+    borderRadius: 12,
     paddingVertical: Spacing.three,
     alignItems: 'center',
-    marginTop: Spacing.one,
     minHeight: 52,
+    justifyContent: 'center',
+    shadowColor: '#035AA6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
   },
   buttonDisabled: {
-    backgroundColor: '#9cc3e6',
+    backgroundColor: '#9CC3E6',
   },
   buttonText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 700,
+    fontWeight: '700',
   },
   buttonSecundario: {
-    borderWidth: 1,
-    borderColor: Colors.light.primarySecondary,
-    borderRadius: Spacing.two,
+    borderWidth: 1.5,
+    borderColor: '#035AA6',
+    borderRadius: 12,
     paddingVertical: Spacing.three,
     alignItems: 'center',
-    marginTop: Spacing.one,
     minHeight: 52,
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
   },
   buttonTextoSecundario: {
-    color: Colors.light.primarySecondary,
-    fontSize: 16,
-    fontWeight: 700,
-  },
-  loadingText: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: Spacing.six,
+    color: '#035AA6',
+    fontSize: 15,
+    fontWeight: '700',
   },
   mensajeResultado: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 18,
   },
   cardBorradorExistente: {
-    borderColor: '#b08d1e',
-    backgroundColor: 'rgba(176, 141, 30, 0.05)',
+    borderColor: '#D97706',
+    backgroundColor: '#FEF3C7',
   },
   cardConsumo: {
-    borderColor: Colors.light.primary,
-    backgroundColor: 'rgba(3, 90, 166, 0.05)',
+    borderColor: '#035AA6',
+    backgroundColor: '#E0F2FE',
+    marginTop: Spacing.three,
   },
   fotoContainer: {
     gap: Spacing.three,
     alignItems: 'center',
+    marginTop: Spacing.two,
   },
   fotoPreview: {
     width: '100%',
-    height: 220,
-    borderRadius: Spacing.two,
-    backgroundColor: '#e5e5e5',
+    height: 200,
+    borderRadius: 12,
+    backgroundColor: '#E2E8F0',
   },
   warningBanner: {
-    backgroundColor: '#fff3cd',
+    backgroundColor: '#FEF3C7',
     borderWidth: 1,
-    borderColor: '#b08d1e',
-    borderRadius: Spacing.two,
+    borderColor: '#D97706',
+    borderRadius: 10,
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.three,
     marginTop: Spacing.two,
   },
   warningText: {
-    color: '#856404',
-    fontSize: 13,
+    color: '#92400E',
+    fontSize: 12,
+    fontWeight: '600',
   },
   consumoTexto: {
     fontSize: 14,
-    fontWeight: 700,
-    color: Colors.light.primary,
+    fontWeight: '700',
+    color: '#035AA6',
     marginBottom: Spacing.two,
   },
   alertBanner: {
-    backgroundColor: '#fdecea',
+    backgroundColor: '#FEE2E2',
     borderWidth: 1,
-    borderColor: Colors.light.error,
-    borderRadius: Spacing.two,
+    borderColor: '#D93030',
+    borderRadius: 10,
     paddingVertical: Spacing.three,
     paddingHorizontal: Spacing.three,
     marginTop: Spacing.two,
   },
   alertTitle: {
-    color: Colors.light.error,
+    color: '#D93030',
     fontSize: 14,
-    fontWeight: 700,
+    fontWeight: '700',
     marginBottom: Spacing.one,
   },
   alertDetail: {
-    color: Colors.light.textSecondary,
+    color: '#64748B',
     fontSize: 12,
     lineHeight: 18,
     marginBottom: Spacing.two,
@@ -1064,20 +1130,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.one,
+    marginTop: Spacing.one,
   },
   confirmTexto: {
     fontSize: 13,
-    color: Colors.light.text,
+    color: '#1E293B',
+    fontWeight: '600',
   },
   alertRequired: {
-    color: Colors.light.error,
+    color: '#D93030',
     fontSize: 12,
-    fontWeight: 700,
+    fontWeight: '700',
     marginTop: Spacing.one,
   },
-  divisor: {
-    height: 1,
-    backgroundColor: '#cccccc',
-    marginVertical: Spacing.three,
+  datos: {
+    gap: Spacing.one,
   },
 });

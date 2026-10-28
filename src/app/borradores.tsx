@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -83,67 +84,79 @@ export default function BorradoresScreen() {
       contentContainerStyle={styles.contentContainer}
       style={styles.scrollView}
       keyboardShouldPersistTaps="handled">
-      <ThemedView type="primaryDark" style={styles.header}>
-        <ThemedText type="title" style={styles.headerTitle} themeColor="text">
-          EPMAPS
-        </ThemedText>
-        <ThemedText type="smallBold" style={styles.headerSubtitle} themeColor="textSecondary">
-          Borradores pendientes
-        </ThemedText>
-        <ThemedView style={styles.statusRow}>
-          <ThemedText type="small" style={styles.statusText} themeColor="text">
-            {isConnected === false ? '● Sin conexión' : '● Conectado'}
-          </ThemedText>
-          {pendingCount > 0 && (
+      
+      {/* Cabecera institucional moderna */}
+      <View style={styles.header}>
+        <View style={styles.headerTopRow}>
+          <View>
+            <ThemedText type="title" style={styles.headerTitle} themeColor="text">
+              EPMAPS
+            </ThemedText>
+            <ThemedText type="smallBold" style={styles.headerSubtitle} themeColor="textSecondary">
+              Borradores pendientes
+            </ThemedText>
+          </View>
+        </View>
+        <View style={styles.statusRowContainer}>
+          <View style={styles.statusRow}>
             <ThemedText type="small" style={styles.statusText} themeColor="text">
-              | Pendientes: {pendingCount}
+              {isConnected === false ? '● Sin conexión' : '● Conectado'}
             </ThemedText>
+            {pendingCount > 0 && (
+              <ThemedText type="small" style={styles.statusText} themeColor="text">
+                | Pendientes: {pendingCount}
+              </ThemedText>
+            )}
+          </View>
+          {isConnected !== false && pendingCount > 0 && (
+            <Pressable
+              style={styles.syncButton}
+              onPress={() => {
+                sincronizarPendientes()
+                  .then(() => actualizarContador())
+                  .catch(() => actualizarContador());
+              }}>
+              <ThemedText type="smallBold" style={styles.syncButtonText} themeColor="text">
+                Sincronizar ahora
+              </ThemedText>
+            </Pressable>
           )}
-        </ThemedView>
-        {isConnected !== false && pendingCount > 0 && (
-          <Pressable
-            style={styles.syncButton}
-            onPress={() => {
-              sincronizarPendientes()
-                .then(() => actualizarContador())
-                .catch(() => actualizarContador());
-            }}>
-            <ThemedText type="smallBold" style={styles.syncButtonText} themeColor="text">
-              Sincronizar ahora
-            </ThemedText>
-          </Pressable>
-        )}
-      </ThemedView>
+        </View>
+      </View>
 
-      <ThemedView type="backgroundLight" style={styles.card}>
-        <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="primaryDark">
-          Registros incompletos
-        </ThemedText>
+      <View style={styles.cardContainer}>
+        <View style={styles.sectionHeaderRow}>
+          <Ionicons name="document-text-outline" size={20} color="#035AA6" />
+          <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="primaryDark">
+            Registros incompletos
+          </ThemedText>
+        </View>
 
         {borradores.length === 0 ? (
-          <ThemedView style={styles.emptyContainer}>
+          <View style={styles.emptyContainer}>
+            <Ionicons name="checkmark-circle-outline" size={48} color="#035AA6" style={{ marginBottom: 8 }} />
             <ThemedText type="smallBold" style={styles.emptyTitle} themeColor="text">
               No hay borradores pendientes
             </ThemedText>
             <ThemedText type="small" style={styles.emptyText} themeColor="textSecondary">
               No existen registros incompletos para continuar.
             </ThemedText>
-          </ThemedView>
+          </View>
         ) : (
           borradores.map((b) => (
             <View key={b.id_local} style={styles.item}>
               <View style={styles.itemInfo}>
-                <ThemedText type="smallBold" style={styles.itemCode} themeColor="background">
-                  {b.codigo_medidor}
-                </ThemedText>
+                <View style={styles.codeRow}>
+                  <Ionicons name="barcode-outline" size={16} color="#035AA6" />
+                  <ThemedText type="smallBold" style={styles.itemCode} themeColor="primaryDark">
+                    {b.codigo_medidor}
+                  </ThemedText>
+                </View>
                 <ThemedText type="small" style={styles.itemMeta} themeColor="textSecondary">
-                  {b.mes}/{b.anio}
-                </ThemedText>
-                <ThemedText type="small" style={styles.itemMeta} themeColor="textSecondary">
-                  {b.estado_medidor}
+                  Periodo: {b.mes}/{b.anio} &bull; Estado: <ThemedText style={{ fontWeight: '600', color: '#1E293B' }}>{b.estado_medidor}</ThemedText>
                 </ThemedText>
                 <ThemedText type="code" style={styles.itemDate} themeColor="textSecondary">
-                  {formatearFecha(b.fecha_creacion)}
+                  Modificado: {formatearFecha(b.fecha_creacion)}
                 </ThemedText>
               </View>
               <View style={styles.itemActions}>
@@ -161,14 +174,13 @@ export default function BorradoresScreen() {
             </View>
           ))
         )}
+
         <Pressable style={styles.buttonSecundario} onPress={() => router.back()}>
           <ThemedText type="smallBold" style={styles.buttonTextoSecundario} themeColor="primarySecondary">
-            Volver
+            Volver al inicio
           </ThemedText>
         </Pressable>
-      </ThemedView>
-
-      
+      </View>
     </ScrollView>
   );
 }
@@ -176,146 +188,209 @@ export default function BorradoresScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.backgroundLight,
+    backgroundColor: '#F2F2F2', // <--- Forzar color claro
   },
   scrollView: {
     flexGrow: 1,
+    backgroundColor: '#F2F2F2', // <--- Evita el fondo negro de la pantalla nativa
   },
   contentContainer: {
-    paddingHorizontal: Spacing.half,
     paddingBottom: Spacing.six,
-    gap: Spacing.half,
+    backgroundColor: '#F2F2F2',
   },
   header: {
-    paddingVertical: Spacing.four,
+    paddingTop: 50, // <--- Esto evita que la barra de estado del celular (arriba del todo) se vea negra o encimada
+    paddingBottom: Spacing.four,
     paddingHorizontal: Spacing.five,
+    backgroundColor: '#035AA6',
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
+  backIconButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    padding: 10,
+    borderRadius: 12,
+  },
+  cardContainer: {
+    marginHorizontal: Spacing.four,
+    marginTop: -Spacing.three,
+    backgroundColor: '#FFFFFF', // <--- Fondo blanco para la tarjeta flotante
+    borderRadius: 20,
+    padding: Spacing.four,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+    gap: Spacing.three,
+  },
   headerTitle: {
-    fontSize: 32,
-    fontWeight: 700,
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 1,
   },
   headerSubtitle: {
-    marginTop: Spacing.half,
-    fontSize: 14,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#F2F2F2',
+    letterSpacing: 2,
+    marginTop: 2,
+  },
+  statusRowContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.three,
   },
   statusRow: {
     flexDirection: 'row',
     gap: Spacing.two,
-    marginTop: Spacing.two,
   },
   statusText: {
     fontSize: 12,
     color: '#ffffff',
+    fontWeight: '600',
   },
   syncButton: {
-    marginTop: Spacing.two,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one,
-    borderRadius: Spacing.one,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   syncButtonText: {
     color: '#ffffff',
     fontSize: 12,
+    fontWeight: '700',
   },
-  card: {
-    paddingHorizontal: Spacing.three,
-    paddingBottom: Spacing.six,
-    gap: Spacing.four,
+  cardContainer: {
+    marginHorizontal: Spacing.four,
+    marginTop: -Spacing.three,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: Spacing.four,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+    gap: Spacing.three,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    marginBottom: Spacing.one,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: 700,
+    fontWeight: '700',
   },
   item: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: Spacing.three,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#cccccc',
-    borderRadius: Spacing.two,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
     marginBottom: Spacing.two,
   },
   itemInfo: {
     flex: 1,
-    gap: Spacing.half,
+    gap: 4,
+    paddingRight: Spacing.two,
+  },
+  codeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   itemCode: {
-    fontSize: 16,
-    fontWeight: 700,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#035AA6',
   },
   itemMeta: {
     fontSize: 12,
-    color: '#60646C',
+    color: '#64748B',
   },
   itemDate: {
-    fontSize: 12,
-    color: '#60646C',
-    marginTop: Spacing.half,
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
   },
   itemActions: {
     gap: Spacing.two,
+    width: 100,
   },
   btnContinuar: {
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.three,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: Colors.light.primary,
-    borderRadius: Spacing.two,
-    backgroundColor: 'rgba(3, 90, 166, 0.1)',
+    borderColor: '#035AA6',
+    borderRadius: 10,
+    backgroundColor: '#E0F2FE',
+    alignItems: 'center',
   },
   btnTexto: {
-    fontSize: 14,
-    fontWeight: 700,
-    color: Colors.light.primary,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#035AA6',
   },
   btnDescartar: {
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.three,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: Colors.light.error,
-    borderRadius: Spacing.two,
-    backgroundColor: 'rgba(217, 48, 48, 0.1)',
+    borderColor: '#D93030',
+    borderRadius: 10,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
   },
   btnTextoDescartar: {
-    fontSize: 14,
-    fontWeight: 700,
-    color: Colors.light.error,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#D93030',
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: Spacing.two,
+    paddingVertical: Spacing.five,
   },
   emptyTitle: {
     fontSize: 16,
-    fontWeight: 700,
-    marginBottom: Spacing.half,
+    fontWeight: '700',
+    marginBottom: 4,
+    color: '#0F172A',
   },
   emptyText: {
-    fontSize: 14,
-    color: '#60646C',
+    fontSize: 13,
+    color: '#64748B',
     textAlign: 'center',
   },
   buttonSecundario: {
-    borderWidth: 1,
-    borderColor: Colors.light.primarySecondary,
-    borderRadius: Spacing.two,
+    borderWidth: 1.5,
+    borderColor: '#035AA6',
+    borderRadius: 12,
     paddingVertical: Spacing.three,
     alignItems: 'center',
-    marginTop: Spacing.one,
+    marginTop: Spacing.two,
     minHeight: 52,
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
   },
   buttonTextoSecundario: {
-    color: Colors.light.primarySecondary,
-    fontSize: 16,
-    fontWeight: 700,
+    color: '#035AA6',
+    fontSize: 15,
+    fontWeight: '700',
   },
   loadingText: {
     fontSize: 16,
     textAlign: 'center',
     marginTop: Spacing.six,
+    color: '#64748B',
   },
 });
