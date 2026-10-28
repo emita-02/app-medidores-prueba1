@@ -607,7 +607,7 @@ export default function LecturaScreen() {
           </Pressable>
         </View>
 
-        {!esInaccesible && (
+        {esNormal && (
           <>
             <ThemedText type="smallBold" style={[styles.label, styles.mt]} themeColor="primaryDark">
               Lectura actual
@@ -677,7 +677,7 @@ export default function LecturaScreen() {
                 Campo obligatorio para estado dañado.
               </ThemedText>
             )}
-            <ThemedText type="smallBold" style={[styles.label, styles.mt]} themeColor="text">
+            <ThemedText type="smallBold" style={[styles.label, styles.mt]} themeColor="primaryDark">
               Lectura actual (opcional)
             </ThemedText>
             <TextInput

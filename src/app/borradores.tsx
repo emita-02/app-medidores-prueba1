@@ -133,7 +133,7 @@ export default function BorradoresScreen() {
           borradores.map((b) => (
             <View key={b.id_local} style={styles.item}>
               <View style={styles.itemInfo}>
-                <ThemedText type="smallBold" style={styles.itemCode} themeColor="text">
+                <ThemedText type="smallBold" style={styles.itemCode} themeColor="background">
                   {b.codigo_medidor}
                 </ThemedText>
                 <ThemedText type="small" style={styles.itemMeta} themeColor="textSecondary">
