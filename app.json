@@ -32,6 +32,21 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+      ],
+      "expo-secure-store",
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "La aplicación necesita acceso a tus fotos para guardar evidencia del medidor.",
+          "cameraPermission": "La aplicación necesita acceso a la cámara para tomar fotos del medidor cuando sea obligatorio."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "La aplicación necesita acceso a la cámara para tomar fotos del medidor cuando sea obligatorio."
+        }
       ]
     ],
     "experiments": {

@@ -7,6 +7,14 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 
+export const MedidoresColors = {
+  primary: '#035AA6',
+  primarySecondary: '#0367A6',
+  primaryDark: '#175073',
+  error: '#D93030',
+  backgroundLight: '#F2F2F2',
+} as const;
+
 export const Colors = {
   light: {
     text: '#000000',
@@ -14,6 +22,11 @@ export const Colors = {
     backgroundElement: '#F0F0F3',
     backgroundSelected: '#E0E1E6',
     textSecondary: '#60646C',
+    primary: MedidoresColors.primary,
+    primarySecondary: MedidoresColors.primarySecondary,
+    primaryDark: MedidoresColors.primaryDark,
+    error: MedidoresColors.error,
+    backgroundLight: MedidoresColors.backgroundLight,
   },
   dark: {
     text: '#ffffff',
@@ -21,6 +34,11 @@ export const Colors = {
     backgroundElement: '#212225',
     backgroundSelected: '#2E3135',
     textSecondary: '#B0B4BA',
+    primary: MedidoresColors.primary,
+    primarySecondary: MedidoresColors.primarySecondary,
+    primaryDark: MedidoresColors.primaryDark,
+    error: MedidoresColors.error,
+    backgroundLight: MedidoresColors.backgroundLight,
   },
 } as const;
 

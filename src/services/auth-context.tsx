@@ -1,0 +1,49 @@
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+
+import { authService, type SessionData } from '@/services/auth.service';
+
+type AuthContextType = {
+  session: SessionData | null;
+  loading: boolean;
+  login: (employeeCode: string) => Promise<void>;
+  logout: () => Promise<void>;
+};
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [session, setSession] = useState<SessionData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    authService.getSession().then((sessionData) => {
+      setSession(sessionData);
+      setLoading(false);
+    });
+  }, []);
+
+  const login = async (employeeCode: string): Promise<void> => {
+    await authService.saveSession(employeeCode);
+    const sessionData = await authService.getSession();
+    setSession(sessionData);
+  };
+
+  const logout = async (): Promise<void> => {
+    await authService.clearSession();
+    setSession(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ session, loading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth(): AuthContextType {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth debe usarse dentro de AuthProvider');
+  }
+  return context;
+}
