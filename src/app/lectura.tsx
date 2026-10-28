@@ -32,6 +32,8 @@ import {
   type Lectura,
 } from '@/database/repository';
 import { hayConexion } from '@/services/medidor.service';
+import { useConnectionStatus } from '@/hooks/use-connection';
+import { sincronizarPendientes } from '@/services/sync.service';
 
 type EstadoMedidor = 'normal' | 'inaccesible' | 'dano';
 
@@ -52,6 +54,7 @@ export default function LecturaScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const codigo = typeof params.codigo === 'string' ? params.codigo : undefined;
+  const { isConnected, pendingCount, actualizarContador } = useConnectionStatus();
 
   const [estado, setEstado] = useState<EstadoMedidor>('normal');
   const [lecturaActual, setLecturaActual] = useState('');
@@ -243,16 +246,23 @@ export default function LecturaScreen() {
         return;
       }
 
-      if (ultimaLectura == null || promedioMensual == null || !Number.isFinite(ultimaLectura) || !Number.isFinite(promedioMensual)) {
+      if (ultimaLectura == null || !Number.isFinite(ultimaLectura)) {
         setDatosInsuficientes(true);
         return;
       }
 
+      if (lecturaNum < ultimaLectura) {
+        setLecturaMenorAnterior(true);
+        return;
+      }
+
+      setLecturaMenorAnterior(false);
+
       const consumo = lecturaNum - ultimaLectura;
       setConsumoMensual(consumo);
 
-      if (consumo < 0) {
-        setLecturaMenorAnterior(true);
+      if (promedioMensual == null || !Number.isFinite(promedioMensual)) {
+        setDatosInsuficientes(true);
         return;
       }
 
@@ -314,19 +324,23 @@ export default function LecturaScreen() {
       let finalUri = uri;
       try {
         const FS: any = FileSystem;
-        const documentDir = FS.documentDirectory || FS.cacheDirectory;
-        const destDir = documentDir ? documentDir + 'fotos_medidores/' : (FS.cacheDirectory + 'fotos_medidores/');
-        if (FS.makeDirectoryAsync) {
-          await FS.makeDirectoryAsync(destDir, { intermediates: true });
-        }
-        const fileName = `medidor_${codigo || 'x'}_${Date.now()}.jpg`;
-        const destUri = destDir + fileName;
-        if (FS.copyAsync) {
-          await FS.copyAsync({ from: uri, to: destUri });
-          finalUri = destUri;
-        } else if (FS.moveAsync) {
-          await FS.moveAsync({ from: uri, to: destUri });
-          finalUri = destUri;
+        if (FS) {
+          const baseDir = FS.documentDirectory || FS.cacheDirectory;
+          if (baseDir) {
+            const destDir = baseDir.endsWith('/') ? baseDir + 'fotos_medidores/' : baseDir + '/fotos_medidores/';
+            if (FS.makeDirectoryAsync) {
+              await FS.makeDirectoryAsync(destDir, { intermediates: true });
+            }
+            const fileName = `medidor_${codigo || 'x'}_${Date.now()}_${idLocal}.jpg`;
+            const destUri = destDir + fileName;
+            if (FS.copyAsync) {
+              await FS.copyAsync({ from: uri, to: destUri });
+              finalUri = destUri;
+            } else if (FS.moveAsync) {
+              await FS.moveAsync({ from: uri, to: destUri });
+              finalUri = destUri;
+            }
+          }
         }
       } catch {
         finalUri = uri;
@@ -390,6 +404,11 @@ export default function LecturaScreen() {
         setError('Para estado normal, ingrese una lectura actual válida (número no negativo).');
         return;
       }
+      const ultimaLectura = medidor.ultima_lectura;
+      if (ultimaLectura != null && Number.isFinite(ultimaLectura) && lecturaNum < ultimaLectura) {
+        setError('La lectura actual no puede ser inferior a la última lectura registrada. Verifique el valor ingresado.');
+        return;
+      }
     }
 
     if (esInaccesible && !motivoInaccesibilidad.trim()) {
@@ -400,6 +419,19 @@ export default function LecturaScreen() {
     if (esDano && !descripcionDano.trim()) {
       setError('Para estado dañado, debe indicar la descripción del daño.');
       return;
+    }
+
+    if (esDano && lecturaActual.trim() !== '') {
+      const lecturaNum = parseFloat(lecturaActual);
+      if (isNaN(lecturaNum) || lecturaNum < 0) {
+        setError('La lectura ingresada debe ser un número válido no negativo.');
+        return;
+      }
+      const ultimaLectura = medidor.ultima_lectura;
+      if (ultimaLectura != null && Number.isFinite(ultimaLectura) && lecturaNum < ultimaLectura) {
+        setError('La lectura actual no puede ser inferior a la última lectura registrada. Verifique el valor ingresado.');
+        return;
+      }
     }
 
     if (esAnomalia && !confirmacionRevisada) {
@@ -463,6 +495,7 @@ export default function LecturaScreen() {
         marcarLecturaComoPendiente(idLocalParaGuardar);
         setExito('Lectura guardada como pendiente de verificar.');
       }
+      actualizarContador();
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : 'Error inesperado al guardar la lectura.';
       setError(`Error al guardar: ${mensaje}`);
@@ -487,10 +520,33 @@ export default function LecturaScreen() {
         <ThemedText type="smallBold" style={styles.headerSubtitle} themeColor="textSecondary">
           Registro de lectura de medidor
         </ThemedText>
+        <ThemedView style={styles.statusRow}>
+          <ThemedText type="small" style={styles.statusText} themeColor="text">
+            {isConnected === false ? '● Sin conexión' : '● Conectado'}
+          </ThemedText>
+          {pendingCount > 0 && (
+            <ThemedText type="small" style={styles.statusText} themeColor="text">
+              | Pendientes: {pendingCount}
+            </ThemedText>
+          )}
+        </ThemedView>
+        {isConnected !== false && pendingCount > 0 && (
+          <Pressable
+            style={styles.syncButton}
+            onPress={() => {
+              sincronizarPendientes()
+                .then(() => actualizarContador())
+                .catch(() => actualizarContador());
+            }}>
+            <ThemedText type="smallBold" style={styles.syncButtonText} themeColor="text">
+              Sincronizar ahora
+            </ThemedText>
+          </Pressable>
+        )}
       </ThemedView>
 
       <ThemedView type="backgroundLight" style={styles.card}>
-        <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="text">
+        <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="primaryDark">
           Medidor
         </ThemedText>
         {medidor && (
@@ -507,11 +563,10 @@ export default function LecturaScreen() {
             No hay información detallada del código {codigo} en caché local.
           </ThemedText>
         )}
-      </ThemedView>
 
       {esBorradorExistente && idLocal && (
         <ThemedView style={[styles.card, styles.cardBorradorExistente]}>
-          <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="text">
+          <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="primaryDark">
             Borrador recuperado
           </ThemedText>
           <ThemedText type="small" style={styles.mensajeResultado} themeColor="textSecondary">
@@ -519,34 +574,34 @@ export default function LecturaScreen() {
           </ThemedText>
         </ThemedView>
       )}
-
-      <ThemedView type="backgroundLight" style={styles.card}>
-        <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="text">
+      
+      <View style={styles.divisor} />
+        <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="primaryDark">
           Datos de la lectura
         </ThemedText>
 
-        <ThemedText type="smallBold" style={styles.label} themeColor="text">
+        <ThemedText type="smallBold" style={styles.label} themeColor="primaryDark">
           Estado del medidor
         </ThemedText>
         <View style={styles.estadoRow}>
           <Pressable
             style={[styles.estadoBoton, estado === 'normal' && styles.estadoBotonActivo]}
             onPress={() => handleSeleccionarEstado('normal')}>
-            <ThemedText type="smallBold" style={styles.estadoTexto} themeColor="text">
+            <ThemedText type="smallBold" style={styles.estadoTexto} themeColor="primaryDark">
               Normal
             </ThemedText>
           </Pressable>
           <Pressable
             style={[styles.estadoBoton, estado === 'inaccesible' && styles.estadoBotonActivo]}
             onPress={() => handleSeleccionarEstado('inaccesible')}>
-            <ThemedText type="smallBold" style={styles.estadoTexto} themeColor="text">
+            <ThemedText type="smallBold" style={styles.estadoTexto} themeColor="primaryDark">
               Inaccesible
             </ThemedText>
           </Pressable>
           <Pressable
             style={[styles.estadoBoton, estado === 'dano' && styles.estadoBotonActivo]}
             onPress={() => handleSeleccionarEstado('dano')}>
-            <ThemedText type="smallBold" style={styles.estadoTexto} themeColor="text">
+            <ThemedText type="smallBold" style={styles.estadoTexto} themeColor="primaryDark">
               Dañado
             </ThemedText>
           </Pressable>
@@ -554,7 +609,7 @@ export default function LecturaScreen() {
 
         {!esInaccesible && (
           <>
-            <ThemedText type="smallBold" style={[styles.label, styles.mt]} themeColor="text">
+            <ThemedText type="smallBold" style={[styles.label, styles.mt]} themeColor="primaryDark">
               Lectura actual
             </ThemedText>
             <TextInput
@@ -579,7 +634,7 @@ export default function LecturaScreen() {
 
         {esInaccesible && (
           <>
-            <ThemedText type="smallBold" style={[styles.label, styles.mt]} themeColor="text">
+            <ThemedText type="smallBold" style={[styles.label, styles.mt]} themeColor="primaryDark">
               Motivo de inaccesibilidad
             </ThemedText>
             <TextInput
@@ -603,7 +658,7 @@ export default function LecturaScreen() {
 
         {esDano && (
           <>
-            <ThemedText type="smallBold" style={[styles.label, styles.mt]} themeColor="text">
+            <ThemedText type="smallBold" style={[styles.label, styles.mt]} themeColor="primaryDark">
               Descripción del daño
             </ThemedText>
             <TextInput
@@ -640,28 +695,28 @@ export default function LecturaScreen() {
           </>
         )}
 
-        {!esInaccesible && (
-          <>
-            {(consumoMensual !== null || lecturaMenorAnterior || datosInsuficientes) && (
-              <ThemedView style={[styles.card, styles.cardConsumo]}>
-                <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="text">
-                  Consumo mensual
-                </ThemedText>
-                {lecturaMenorAnterior && (
-                  <ThemedView style={styles.warningBanner}>
-                    <ThemedText type="small" style={styles.warningText} themeColor="text">
-                      La lectura actual es menor que la última lectura registrada. Esto puede indicar un error de captura.
-                    </ThemedText>
-                  </ThemedView>
-                )}
-                {datosInsuficientes && (
-                  <ThemedView style={styles.warningBanner}>
-                    <ThemedText type="small" style={styles.warningText} themeColor="text">
-                      No se puede determinar el consumo: faltan la última lectura o el consumo promedio mensual del medidor.
-                    </ThemedText>
-                  </ThemedView>
-                )}
-                {consumoMensual !== null && !lecturaMenorAnterior && !datosInsuficientes && (
+                {!esInaccesible && (
+                  <>
+                    {(consumoMensual !== null || lecturaMenorAnterior || datosInsuficientes) && (
+                      <ThemedView style={[styles.card, styles.cardConsumo]}>
+                        <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="text">
+                          Consumo mensual
+                        </ThemedText>
+                        {lecturaMenorAnterior && (
+                          <ThemedView style={styles.warningBanner}>
+                            <ThemedText type="small" style={styles.warningText} themeColor="text">
+                              La lectura actual es menor que la última lectura registrada. Verifique el valor ingresado antes de guardar.
+                            </ThemedText>
+                          </ThemedView>
+                        )}
+                        {datosInsuficientes && (
+                          <ThemedView style={styles.warningBanner}>
+                            <ThemedText type="small" style={styles.warningText} themeColor="text">
+                              No se puede determinar el consumo con certeza: faltan datos de referencia (última lectura o promedio mensual). Es posible continuar, pero se recomienda validar los valores.
+                            </ThemedText>
+                          </ThemedView>
+                        )}
+                        {consumoMensual !== null && !lecturaMenorAnterior && !datosInsuficientes && (
                   <>
                     <ThemedText type="small" style={styles.consumoTexto} themeColor="text">
                       Consumo mensual: {consumoMensual.toFixed(2)}
@@ -694,9 +749,9 @@ export default function LecturaScreen() {
             )}
           </>
         )}
-
+        <View style={styles.divisor} />
         <ThemedView type="backgroundLight" style={[styles.card, { marginTop: Spacing.three }]}>
-          <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="text">
+          <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="primaryDark">
             Foto del medidor
           </ThemedText>
           <ThemedText type="small" style={styles.mensajeResultado} themeColor="textSecondary">
@@ -742,7 +797,7 @@ export default function LecturaScreen() {
             </ThemedText>
           </ThemedView>
         )}
-
+        <View style={styles.divisor} />
         <Pressable
           style={[styles.button, guardando && styles.buttonDisabled]}
           disabled={guardando}
@@ -771,12 +826,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   contentContainer: {
-    paddingHorizontal: Spacing.five,
+    paddingHorizontal: Spacing.half,
     paddingBottom: Spacing.six,
-    gap: Spacing.four,
+    gap: Spacing.half,
   },
   header: {
-    paddingVertical: Spacing.six,
+    paddingVertical: Spacing.four,
     paddingHorizontal: Spacing.five,
     alignItems: 'center',
   },
@@ -788,14 +843,35 @@ const styles = StyleSheet.create({
     marginTop: Spacing.half,
     fontSize: 14,
   },
+  statusRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    marginTop: Spacing.two,
+  },
+  statusText: {
+    fontSize: 12,
+    color: '#ffffff',
+  },
+  syncButton: {
+    marginTop: Spacing.two,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.one,
+    borderRadius: Spacing.one,
+  },
+  syncButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+  },
   card: {
     paddingHorizontal: Spacing.five,
     paddingBottom: Spacing.six,
     gap: Spacing.four,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: 700,
+    alignSelf: 'center',
   },
   fila: {
     flexDirection: 'row',
@@ -998,5 +1074,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 700,
     marginTop: Spacing.one,
+  },
+  divisor: {
+    height: 1,
+    backgroundColor: '#cccccc',
+    marginVertical: Spacing.three,
   },
 });

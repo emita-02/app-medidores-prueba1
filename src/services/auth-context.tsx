@@ -5,7 +5,7 @@ import { authService, type SessionData } from '@/services/auth.service';
 type AuthContextType = {
   session: SessionData | null;
   loading: boolean;
-  login: (employeeCode: string) => Promise<void>;
+  login: (employeeCode: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -22,7 +22,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const login = async (employeeCode: string): Promise<void> => {
+  const login = async (employeeCode: string, password: string): Promise<void> => {
+    const isValid = await authService.validateCredentials(employeeCode, password);
+    if (!isValid) {
+      throw new Error('Credenciales inválidas');
+    }
+
     await authService.saveSession(employeeCode);
     const sessionData = await authService.getSession();
     setSession(sessionData);

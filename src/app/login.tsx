@@ -31,10 +31,10 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      await login(employeeCode);
+      await login(employeeCode.trim(), password);
       router.replace('/');
     } catch {
-      setError('No se pudo iniciar sesión. Intente nuevamente.');
+      setError('Código de empleado o contraseña incorrectos.');
     } finally {
       setLoading(false);
     }
@@ -55,7 +55,7 @@ export default function LoginScreen() {
       </ThemedView>
 
       <ThemedView type="backgroundLight" style={styles.card}>
-        <ThemedText type="smallBold" style={styles.label} themeColor="text">
+        <ThemedText type="smallBold" style={styles.label} themeColor="primaryDark">
           Código de empleado
         </ThemedText>
         <TextInput
@@ -68,7 +68,7 @@ export default function LoginScreen() {
           spellCheck={false}
         />
 
-        <ThemedText type="smallBold" style={[styles.label, styles.mt]} themeColor="text">
+        <ThemedText type="smallBold" style={[styles.label, styles.mt]} themeColor="primaryDark">
           Contraseña
         </ThemedText>
         <TextInput

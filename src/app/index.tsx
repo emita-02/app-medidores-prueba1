@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,36 +18,90 @@ import {
   guardarMedidor,
   inicializarBaseDeDatos,
   obtenerMedidorPorCodigo,
+  obtenerLecturasPorEstado,
+  eliminarLectura,
   type Medidor,
+  type Lectura,
 } from '@/database/repository';
 import { consultarMedidor, type ConsultaResult } from '@/services/medidor.service';
 import { useAuth } from '@/services/auth-context';
+import { useConnectionStatus } from '@/hooks/use-connection';
+import { sincronizarPendientes } from '@/services/sync.service';
 
 const CODIGO_REGEX = new RegExp('^MED-\\d{6}$');
 
 export default function HomeScreen() {
   const router = useRouter();
   const { session, loading: authLoading, logout } = useAuth();
+  const { isConnected, pendingCount, actualizarContador } = useConnectionStatus();
 
   const [codigo, setCodigo] = useState('');
   const [consulta, setConsulta] = useState<ConsultaResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [consultando, setConsultando] = useState(false);
   const [verificando, setVerificando] = useState<'idle' | 'ok' | 'fallo' | null>(null);
+  const [borradorPendiente, setBorradorPendiente] = useState<Lectura | null>(null);
 
   useEffect(() => {
     inicializarBaseDeDatos();
+    try {
+      const borradores = obtenerLecturasPorEstado('borrador');
+      if (borradores && borradores.length > 0) {
+        const masReciente = [...borradores].sort((a, b) => {
+          if (b.fecha_modificacion > a.fecha_modificacion) return 1;
+          if (b.fecha_modificacion < a.fecha_modificacion) return -1;
+          return 0;
+        })[0];
+        setBorradorPendiente(masReciente);
+      } else {
+        setBorradorPendiente(null);
+      }
+    } catch {
+      setBorradorPendiente(null);
+    }
   }, []);
 
-  if (authLoading) {
-    return (
-      <ThemedView type="background" style={styles.container}>
-        <ThemedText type="default" themeColor="text" style={styles.loadingText}>
-          Cargando sesión...
-        </ThemedText>
-      </ThemedView>
+  useEffect(() => {
+    actualizarContador();
+  }, [actualizarContador]);
+
+  const handleDescartarBorrador = () => {
+    if (!borradorPendiente) return;
+    Alert.alert(
+      'Descartar borrador',
+      `¿Desea descartar el borrador del medidor ${borradorPendiente.codigo_medidor} (${borradorPendiente.mes}/${borradorPendiente.anio})?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Descartar',
+          style: 'destructive',
+          onPress: () => {
+            try {
+              const res = eliminarLectura(borradorPendiente.id_local);
+              if (res && res.ok) {
+                setBorradorPendiente(null);
+              } else if (res && res.error) {
+                Alert.alert('Error', res.error);
+              } else {
+                setBorradorPendiente(null);
+              }
+            } catch {
+              Alert.alert('Error', 'No se pudo descartar el borrador.');
+            }
+          },
+        },
+      ]
     );
-  }
+  };
+
+  const handleContinuarBorrador = () => {
+    if (!borradorPendiente) return;
+    router.push(
+      `/lectura?borradorId=${encodeURIComponent(borradorPendiente.id_local)}&codigo=${encodeURIComponent(
+        borradorPendiente.codigo_medidor
+      )}`
+    );
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -276,14 +331,36 @@ export default function HomeScreen() {
         <ThemedText type="smallBold" style={styles.headerSubtitle} themeColor="textSecondary">
           Registro de lecturas de medidores
         </ThemedText>
+        <ThemedView style={styles.statusRow}>
+          <ThemedText type="small" style={styles.statusText} themeColor="text">
+            {isConnected === false ? '● Sin conexión' : '● Conectado'}
+          </ThemedText>
+          {pendingCount > 0 && (
+            <ThemedText type="small" style={styles.statusText} themeColor="text">
+              | Pendientes: {pendingCount}
+            </ThemedText>
+          )}
+        </ThemedView>
+        {isConnected !== false && pendingCount > 0 && (
+          <Pressable
+            style={styles.syncButton}
+            onPress={() => {
+              sincronizarPendientes()
+                .then(() => actualizarContador())
+                .catch(() => actualizarContador());
+            }}>
+            <ThemedText type="smallBold" style={styles.syncButtonText} themeColor="text">
+              Sincronizar ahora
+            </ThemedText>
+          </Pressable>
+        )}
       </ThemedView>
-
       <ThemedView type="backgroundLight" style={styles.card}>
-        <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="text">
+        <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="primaryDark">
           Sesión activa
         </ThemedText>
         <ThemedView style={styles.infoRow}>
-          <ThemedText type="smallBold" themeColor="text">
+          <ThemedText type="smallBold" themeColor="primaryDark">
             Empleado:
           </ThemedText>
           <ThemedText type="code" style={styles.empleadoCode} themeColor="text">
@@ -292,18 +369,63 @@ export default function HomeScreen() {
         </ThemedView>
 
         <Pressable style={styles.logoutButton} onPress={handleLogout}>
-          <ThemedText type="smallBold" style={styles.logoutText} themeColor="error">
+          <ThemedText type="smallBold" themeColor="error">
             Cerrar sesión
           </ThemedText>
         </Pressable>
-      </ThemedView>
+      <View style={styles.divisor} />
 
-      <ThemedView type="backgroundLight" style={styles.card}>
-        <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="text">
+      {borradorPendiente ? (
+        <ThemedView type="backgroundLight" style={[styles.card, styles.cardBorrador]}>
+          <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="text">
+            Borrador incompleto detectado
+          </ThemedText>
+          <ThemedText type="small" style={styles.mensajeResultado} themeColor="textSecondary">
+            Hay un registro sin terminar para el medidor {borradorPendiente.codigo_medidor} ({borradorPendiente.mes}/{borradorPendiente.anio}). Estado: {borradorPendiente.estado_medidor}.
+          </ThemedText>
+          <View style={styles.borradorActions}>
+            <Pressable style={styles.button} onPress={handleContinuarBorrador}>
+              <ThemedText type="smallBold" style={styles.buttonText} themeColor="text">
+                Continuar registro
+              </ThemedText>
+            </Pressable>
+            <Pressable style={styles.buttonSecundario} onPress={handleDescartarBorrador}>
+              <ThemedText type="smallBold" style={styles.buttonTextoSecundario} themeColor="primarySecondary">
+                Descartar borrador
+              </ThemedText>
+            </Pressable>
+          </View>
+        </ThemedView>
+      ) : null}
+
+      {borradorPendiente && (
+        <ThemedView type="backgroundLight" style={[styles.card, styles.cardBorrador]}>
+          <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="text">
+            Borrador incompleto detectado
+          </ThemedText>
+          <ThemedText type="small" style={styles.mensajeResultado} themeColor="textSecondary">
+            Hay un registro sin terminar para el medidor {borradorPendiente.codigo_medidor} ({borradorPendiente.mes}/{borradorPendiente.anio}). Estado: {borradorPendiente.estado_medidor}.
+          </ThemedText>
+          <View style={styles.borradorActions}>
+            <Pressable style={styles.button} onPress={handleContinuarBorrador}>
+              <ThemedText type="smallBold" style={styles.buttonText} themeColor="text">
+                Continuar registro
+              </ThemedText>
+            </Pressable>
+            <Pressable style={styles.buttonSecundario} onPress={handleDescartarBorrador}>
+              <ThemedText type="smallBold" style={styles.buttonTextoSecundario} themeColor="primarySecondary">
+                Descartar borrador
+              </ThemedText>
+            </Pressable>
+          </View>
+        </ThemedView>
+      )}
+
+        <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="primaryDark">
           Consulta de medidor
         </ThemedText>
 
-        <ThemedText type="smallBold" style={styles.label} themeColor="text">
+        <ThemedText type="smallBold" style={styles.label} themeColor="primaryDark">
           Código del medidor
         </ThemedText>
         <TextInput
@@ -382,31 +504,52 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   contentContainer: {
-    paddingHorizontal: Spacing.five,
+    paddingHorizontal: Spacing.half,
     paddingBottom: Spacing.six,
-    gap: Spacing.four,
+    gap: Spacing.half,
   },
   header: {
-    paddingVertical: Spacing.six,
+    paddingVertical: Spacing.four,
     paddingHorizontal: Spacing.five,
     alignItems: 'center',
   },
   headerTitle: {
     fontSize: 32,
-    fontWeight: 700,
+    fontWeight: 800,
   },
   headerSubtitle: {
     marginTop: Spacing.half,
     fontSize: 14,
   },
+  statusRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    marginTop: Spacing.two,
+  },
+  statusText: {
+    fontSize: 12,
+    color: '#ffffff',
+  },
+  syncButton: {
+    marginTop: Spacing.two,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.one,
+    borderRadius: Spacing.one,
+  },
+  syncButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+  },
   card: {
-    paddingHorizontal: Spacing.five,
-    paddingBottom: Spacing.six,
-    gap: Spacing.four,
+    paddingHorizontal: Spacing.four,
+    paddingBottom: Spacing.four,
+    gap: Spacing.three,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: 700,
+    alignSelf: 'center',
   },
   infoRow: {
     flexDirection: 'row',
@@ -423,15 +566,15 @@ const styles = StyleSheet.create({
   empleadoCode: {
     color: Colors.light.primary,
     fontWeight: '700',
+    fontSize: 14,
   },
   logoutButton: {
     marginTop: Spacing.one,
-  },
-  logoutText: {
-    color: Colors.light.error,
-    fontSize: 16,
-    fontWeight: 700,
-    textAlign: 'center',
+    borderColor: Colors.light.error,
+    borderWidth: 1,
+    borderRadius: Spacing.two,
+    paddingVertical: Spacing.three,
+    alignItems: 'center',
   },
   loadingText: {
     fontSize: 16,
@@ -440,7 +583,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: 800,
+    fontWeight: 500,
     marginBottom: Spacing.half,
   },
   input: {
@@ -587,5 +730,12 @@ const styles = StyleSheet.create({
   mensajeFallo: {
     marginTop: Spacing.two,
     fontSize: 13,
+  },
+  cardBorrador: {
+    borderColor: '#b08d1e',
+    backgroundColor: 'rgba(176, 141, 30, 0.05)',
+  },
+  borradorActions: {
+    gap: Spacing.two,
   },
 });

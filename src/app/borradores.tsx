@@ -6,11 +6,14 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Spacing } from '@/constants/theme';
 import { obtenerLecturasPorEstado, eliminarLectura, type Lectura } from '@/database/repository';
+import { useConnectionStatus } from '@/hooks/use-connection';
+import { sincronizarPendientes } from '@/services/sync.service';
 
 export default function BorradoresScreen() {
   const router = useRouter();
   const [borradores, setBorradores] = useState<Lectura[]>([]);
   const [cargando, setCargando] = useState(true);
+  const { isConnected, pendingCount, actualizarContador } = useConnectionStatus();
 
   useEffect(() => {
     Promise.resolve().then(() => {
@@ -87,10 +90,33 @@ export default function BorradoresScreen() {
         <ThemedText type="smallBold" style={styles.headerSubtitle} themeColor="textSecondary">
           Borradores pendientes
         </ThemedText>
+        <ThemedView style={styles.statusRow}>
+          <ThemedText type="small" style={styles.statusText} themeColor="text">
+            {isConnected === false ? '● Sin conexión' : '● Conectado'}
+          </ThemedText>
+          {pendingCount > 0 && (
+            <ThemedText type="small" style={styles.statusText} themeColor="text">
+              | Pendientes: {pendingCount}
+            </ThemedText>
+          )}
+        </ThemedView>
+        {isConnected !== false && pendingCount > 0 && (
+          <Pressable
+            style={styles.syncButton}
+            onPress={() => {
+              sincronizarPendientes()
+                .then(() => actualizarContador())
+                .catch(() => actualizarContador());
+            }}>
+            <ThemedText type="smallBold" style={styles.syncButtonText} themeColor="text">
+              Sincronizar ahora
+            </ThemedText>
+          </Pressable>
+        )}
       </ThemedView>
 
       <ThemedView type="backgroundLight" style={styles.card}>
-        <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="text">
+        <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="primaryDark">
           Registros incompletos
         </ThemedText>
 
@@ -135,13 +161,14 @@ export default function BorradoresScreen() {
             </View>
           ))
         )}
+        <Pressable style={styles.buttonSecundario} onPress={() => router.back()}>
+          <ThemedText type="smallBold" style={styles.buttonTextoSecundario} themeColor="primarySecondary">
+            Volver
+          </ThemedText>
+        </Pressable>
       </ThemedView>
 
-      <Pressable style={styles.buttonSecundario} onPress={() => router.back()}>
-        <ThemedText type="smallBold" style={styles.buttonTextoSecundario} themeColor="primarySecondary">
-          Volver
-        </ThemedText>
-      </Pressable>
+      
     </ScrollView>
   );
 }
@@ -155,12 +182,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   contentContainer: {
-    paddingHorizontal: Spacing.five,
+    paddingHorizontal: Spacing.half,
     paddingBottom: Spacing.six,
-    gap: Spacing.four,
+    gap: Spacing.half,
   },
   header: {
-    paddingVertical: Spacing.six,
+    paddingVertical: Spacing.four,
     paddingHorizontal: Spacing.five,
     alignItems: 'center',
   },
@@ -172,13 +199,33 @@ const styles = StyleSheet.create({
     marginTop: Spacing.half,
     fontSize: 14,
   },
+  statusRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    marginTop: Spacing.two,
+  },
+  statusText: {
+    fontSize: 12,
+    color: '#ffffff',
+  },
+  syncButton: {
+    marginTop: Spacing.two,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.one,
+    borderRadius: Spacing.one,
+  },
+  syncButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+  },
   card: {
-    paddingHorizontal: Spacing.five,
+    paddingHorizontal: Spacing.three,
     paddingBottom: Spacing.six,
     gap: Spacing.four,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 700,
   },
   item: {
@@ -240,12 +287,12 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: Spacing.six,
+    paddingVertical: Spacing.two,
   },
   emptyTitle: {
     fontSize: 16,
     fontWeight: 700,
-    marginBottom: Spacing.two,
+    marginBottom: Spacing.half,
   },
   emptyText: {
     fontSize: 14,
