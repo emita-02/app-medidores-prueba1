@@ -25,7 +25,7 @@
       "package": "com.emily02.appmedidoresprueba1"
     },
     "web": {
-      "output": "server",
+      "output": "static",
       "favicon": "./assets/images/icono_app_aquauio.png"
     },
     "plugins": [
