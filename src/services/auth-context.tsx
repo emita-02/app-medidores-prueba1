@@ -16,10 +16,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    authService.getSession().then((sessionData) => {
-      setSession(sessionData);
-      setLoading(false);
-    });
+    async function loadSession() {
+      try {
+        const sessionData = await authService.getSession();
+        setSession(sessionData);
+      } catch (error) {
+        console.error('Error al recuperar la sesión:', error);
+        setSession(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadSession();
   }, []);
 
   const login = async (employeeCode: string, password: string): Promise<void> => {
