@@ -13,7 +13,7 @@ try {
 let FileSystem: any = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  FileSystem = require('expo-file-system');
+  FileSystem = require('expo-file-system/legacy');
 } catch {
   FileSystem = null;
 }

@@ -22,10 +22,10 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.CAMERA"
       ],
-      "package": "com.emily02.appmedidoresprueba1"
+      "package": "com.erickn.appmedidoresprueba1"
     },
     "web": {
-      "output": "static",
+      "output": "server",
       "favicon": "./assets/images/icono_app_aquauio.png"
     },
     "plugins": [
@@ -52,7 +52,9 @@
         {
           "cameraPermission": "La aplicación necesita acceso a la cámara para tomar fotos del medidor cuando sea obligatorio."
         }
-      ]
+      ],
+      "expo-image",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -65,7 +67,7 @@
         }
       },
       "eas": {
-        "projectId": "a8de3ba7-b305-4833-bc94-1dc18b2145d7"
+        "projectId": "71a83a7b-25fc-4300-800b-b6521736d684"
       }
     }
   }
