@@ -1,45 +1,49 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
-import LoginScreen from './login';
 import { AuthProvider, useAuth } from '@/services/auth-context';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
-  return (
-    <AuthProvider>
-      <RootContent />
-    </AuthProvider>
-  );
+function SplashController() {
+  const { loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading) {
+      SplashScreen.hideAsync();
+    }
+  }, [loading]);
+
+  return null;
 }
 
-function RootContent() {
+function RootNavigator() {
   const colorScheme = useColorScheme();
-  const { session, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <AnimatedSplashOverlay />
-      </ThemeProvider>
-    );
-  }
-
-  if (!session) {
-    return <LoginScreen />;
-  }
+  const { session } = useAuth();
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      {/* Agregamos screenOptions={{ headerShown: false }} aquí */}
       <Stack screenOptions={{ headerShown: false }}>
-        <AppTabs />
+        <Stack.Protected guard={!!session}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="lectura" />
+          <Stack.Screen name="borradores" />
+        </Stack.Protected>
+        <Stack.Protected guard={!session}>
+          <Stack.Screen name="login" />
+        </Stack.Protected>
       </Stack>
     </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <SplashController />
+      <RootNavigator />
+    </AuthProvider>
   );
 }

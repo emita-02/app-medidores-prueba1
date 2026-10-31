@@ -51,6 +51,19 @@ example
 
 
 ================================================
+ðŸ“„ ARCHIVO: .kilo\.gitignore
+================================================
+
+node_modules
+package.json
+package-lock.json
+pnpm-lock.yaml
+bun.lock
+yarn.lock
+.gitignore
+agent-manager.json
+
+================================================
 ðŸ“„ ARCHIVO: .kilo\skills\medidores-ui\SKILL.md
 ================================================
 
@@ -164,7 +177,12 @@ Docs: https://docs.expo.dev/eas/index.md
         "backgroundImage": "./assets/images/icono_app_aquauio.png",
         "monochromeImage": "./assets/images/icono_app_aquauio.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA"
+      ],
+      "package": "com.erickn.appmedidoresprueba1"
     },
     "web": {
       "output": "server",
@@ -194,15 +212,26 @@ Docs: https://docs.expo.dev/eas/index.md
         {
           "cameraPermission": "La aplicación necesita acceso a la cámara para tomar fotos del medidor cuando sea obligatorio."
         }
-      ]
+      ],
+      "expo-image",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "a8de3ba7-b305-4833-bc94-1dc18b2145d7"
+      }
     }
   }
 }
-
 
 ================================================
 ðŸ“„ ARCHIVO: docs\adr\0001-version-expo.md
@@ -448,6 +477,36 @@ Validar el código de medidor con la expresión regular `^MED-\\d{6}$` (en códi
 R2.
 
 ================================================
+ðŸ“„ ARCHIVO: eas.json
+================================================
+
+{
+  "cli": {
+    "version": ">= 27.1.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
+
+
+================================================
 ðŸ“„ ARCHIVO: eslint.config.js
 ================================================
 
@@ -480,32 +539,32 @@ module.exports = defineConfig([
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
-    "@expo/ui": "~58.0.23",
+    "@expo/ui": "~58.0.25",
     "@expo/vector-icons": "^15.0.2",
-    "@react-native-community/netinfo": "11.4.1",
-    "expo": "~58.0.19",
-    "expo-camera": "~16.1.11",
+    "@react-native-community/netinfo": "12.0.1",
+    "expo": "~58.0.21",
+    "expo-camera": "~58.0.14",
     "expo-constants": "~58.0.13",
     "expo-crypto": "~58.0.7",
     "expo-device": "~58.0.5",
-    "expo-file-system": "~18.1.11",
+    "expo-file-system": "~58.0.13",
     "expo-font": "~58.0.10",
     "expo-glass-effect": "~58.0.5",
-    "expo-image": "~58.0.17",
+    "expo-image": "~58.0.18",
     "expo-image-picker": "~58.0.10",
-    "expo-linking": "~58.0.14",
-    "expo-media-library": "~17.1.7",
-    "expo-router": "~58.0.26",
+    "expo-linking": "~58.0.15",
+    "expo-media-library": "~58.0.13",
+    "expo-router": "~58.0.28",
     "expo-secure-store": "~58.0.2",
-    "expo-splash-screen": "~58.0.11",
+    "expo-splash-screen": "~58.0.12",
     "expo-sqlite": "~58.0.14",
     "expo-status-bar": "~58.0.4",
     "expo-symbols": "~58.0.4",
-    "expo-system-ui": "~58.0.6",
-    "expo-web-browser": "~58.0.6",
+    "expo-system-ui": "~58.0.7",
+    "expo-web-browser": "~58.0.7",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "react-native": "0.88.0",
+    "react-native": "0.88.1",
     "react-native-gesture-handler": "~3.3.0",
     "react-native-reanimated": "4.7.1",
     "react-native-safe-area-context": "~5.10.1",
@@ -2123,7 +2182,7 @@ try {
 let FileSystem: any = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  FileSystem = require('expo-file-system');
+  FileSystem = require('expo-file-system/legacy');
 } catch {
   FileSystem = null;
 }
@@ -4912,10 +4971,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    authService.getSession().then((sessionData) => {
-      setSession(sessionData);
-      setLoading(false);
-    });
+    async function loadSession() {
+      try {
+        const sessionData = await authService.getSession();
+        setSession(sessionData);
+      } catch (error) {
+        console.error('Error al recuperar la sesión:', error);
+        setSession(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadSession();
   }, []);
 
   const login = async (employeeCode: string, password: string): Promise<void> => {
