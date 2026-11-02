@@ -9,9 +9,9 @@ Flujo completo:
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 
-import { Aviso } from '@/componentes/Aviso';
-import { Boton } from '@/componentes/Boton';
-import { CampoTexto } from '@/componentes/campo-texto';
+import { Aviso } from '@/components/aviso';
+import { Boton } from '@/components/boton';
+import { CampoTexto } from '@/components/campo-texto';
 import { PantallaHoja } from '@/components/pantalla-hoja';
 import { useSesion } from '@/context/sesion';
 import { mensajeDeError } from '@/lib/errores-firebase';

@@ -14,14 +14,15 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors, Spacing } from "@/constants/theme";
+import { useSesion } from "@/context/sesion";
 import {
   eliminarLectura,
   inicializarBaseDeDatos,
   obtenerLecturasPorEstado,
-  type Lectura
+  type Lectura,
 } from "@/database/repository";
 import { useConnectionStatus } from "@/hooks/use-connection";
-import { useSesion } from "@/context/sesion";  import {
+import {
   consultarMedidor,
   type ConsultaResult,
 } from "@/services/medidor.service";
@@ -31,8 +32,9 @@ const CODIGO_REGEX = new RegExp("^MED-\\d{6}$");
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { usuario, cerrarSesion } = useSesion(); 
-  const { isConnected, pendingCount, actualizarContador } = useConnectionStatus();
+  const { usuario, cerrarSesion } = useSesion();
+  const { isConnected, pendingCount, actualizarContador } =
+    useConnectionStatus();
 
   const [codigo, setCodigo] = useState("");
   const [consulta, setConsulta] = useState<ConsultaResult | null>(null);
@@ -44,7 +46,6 @@ export default function HomeScreen() {
   const [borradorPendiente, setBorradorPendiente] = useState<Lectura | null>(
     null,
   );
-  
 
   useEffect(() => {
     inicializarBaseDeDatos();
@@ -411,15 +412,24 @@ export default function HomeScreen() {
             >
               Registro de lecturas de medidores
             </ThemedText>
+          </View>
           <View style={{ flexDirection: "row", gap: Spacing.two }}>
-            <Pressable style={styles.logoutIconButton} onPress={() => router.push("/cambiar-clave")}
-              accessibilityLabel="Cambiar contraseña">
+            <Pressable
+              style={styles.logoutIconButton}
+              onPress={() => router.push("/cambiar-clave")}
+              accessibilityLabel="Cambiar contraseña"
+            >
               <Ionicons name="key-outline" size={22} color="#FFFFFF" />
             </Pressable>
-            <Pressable style={styles.logoutIconButton} onPress={handleLogout} accessibilityLabel="Cerrar sesión">
+            <Pressable
+              style={styles.logoutIconButton}
+              onPress={handleLogout}
+              accessibilityLabel="Cerrar sesión"
+            >
               <Ionicons name="log-out-outline" size={22} color="#FFFFFF" />
             </Pressable>
           </View>
+        </View>
 
         <View style={styles.statusRowContainer}>
           <View style={styles.statusRow}>
@@ -473,10 +483,7 @@ export default function HomeScreen() {
                 ¡Buen día,
               </ThemedText>
               <ThemedText type="smallBold" style={styles.userName}>
-                {nombre ?? usuario?.email}
-              </ThemedText>
-              <ThemedText type="code" style={styles.empleadoCode}>
-                Código: {usuario?.email ?? ""}
+                {usuario?.email}
               </ThemedText>
             </View>
           </View>
