@@ -56,7 +56,7 @@ export default function PantallaRecuperar() {
             {enviado ? (
                 <Aviso
                 tipo="exito"
-                mensaje={'Si ${correo.trim()} tiene una cuenta, en unos minutos recibirás el enlace. Revisa también la carpeta de spam.'}
+                mensaje={`Si ${correo.trim()} tiene una cuenta, en unos minutos recibirás el enlace. Revisa también la carpeta de spam.`}
                 />
             ) : null}
             {errorGeneral ? <Aviso tipo="error" mensaje={errorGeneral} /> : null}
@@ -78,7 +78,7 @@ export default function PantallaRecuperar() {
             {enviado ? (
                 <>
                     <Boton texto="Volver a iniciar sesión" onPress={() => router.back()} />
-                    <Boton variante="secundario" texto="Enviar otravexz" onPress={manejarEnvio} cargando={enviando} />
+                    <Boton variante="secundario" texto="Enviar otravez" onPress={manejarEnvio} cargando={enviando} />
                 </>
             ) : (
                 <Boton texto="Enviar enlace" onPress={manejarEnvio} cargando={enviando} />

@@ -3,24 +3,10 @@ import { Alert, Image, Linking, Pressable, ScrollView, StyleSheet, TextInput, Vi
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Crypto from 'expo-crypto';
 import { Ionicons } from '@expo/vector-icons';
-let ImagePicker: any = null;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  ImagePicker = require('expo-image-picker');
-} catch {
-  ImagePicker = null;
-}
-let FileSystem: any = null;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  FileSystem = require('expo-file-system/legacy');
-} catch {
-  FileSystem = null;
-}
+
 
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import {
   crearLecturaBorrador,
   actualizarLecturaCompleta,
@@ -30,11 +16,29 @@ import {
   inicializarBaseDeDatos,
   guardarFotoLectura,
   marcarLecturaComoPendiente,
-  type Lectura,
 } from '@/database/repository';
 import { hayConexion } from '@/services/medidor.service';
 import { useConnectionStatus } from '@/hooks/use-connection';
 import { sincronizarPendientes } from '@/services/sync.service';
+
+let ImagePicker: any = null;
+
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  ImagePicker = require('expo-image-picker');
+} catch {
+  ImagePicker = null;
+}
+let FileSystem: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  FileSystem = require('expo-file-system/legacy');
+} catch {
+  FileSystem = null;
+}
+
+
+
 
 type EstadoMedidor = 'normal' | 'inaccesible' | 'dano';
 

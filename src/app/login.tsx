@@ -3,8 +3,7 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View, Image } from 'react
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 
 import { router } from 'expo-router';
 import Animated from 'react-native-reanimated';
@@ -75,39 +74,43 @@ export default function LoginScreen() {
         
 
         <Animated.View style={estiloSacudida}>
-          <ThemedText type="smallBold" style={styles.label} themeColor="primaryDark">
-            Correo electrónico
-          </ThemedText>
-          <View style={styles.inputContainer}>
-            <Ionicons name="mail-outline" size={20} color="#035AA6" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              value={correo}
-              onChangeText={setCorreo}
-              placeholder="nombre@correo.com"
-              placeholderTextColor="#999"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              spellCheck={false}
-            />
+          <View style={styles.formGroup}>
+            <ThemedText type="smallBold" style={styles.label} themeColor="primaryDark">
+              Correo electrónico
+            </ThemedText>
+            <View style={styles.inputContainer}>
+              <Ionicons name="mail-outline" size={20} color="#035AA6" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={correo}
+                onChangeText={setCorreo}
+                placeholder="nombre@correo.com"
+                placeholderTextColor="#999"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                spellCheck={false}
+              />
+            </View>
           </View>
 
-          <ThemedText type="smallBold" style={styles.label} themeColor="primaryDark">
-            Contraseña
-          </ThemedText>
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#035AA6" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="••••••••"
-              placeholderTextColor="#999"
-              secureTextEntry
-              autoComplete="off"
-              spellCheck={false}
-            />
+          <View style={styles.formGroup}>
+            <ThemedText type="smallBold" style={styles.label} themeColor="primaryDark">
+              Contraseña
+            </ThemedText>
+            <View style={styles.inputContainer}>
+              <Ionicons name="lock-closed-outline" size={20} color="#035AA6" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="••••••••"
+                placeholderTextColor="#999"
+                secureTextEntry
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </View>
           </View>
 
           {error && (

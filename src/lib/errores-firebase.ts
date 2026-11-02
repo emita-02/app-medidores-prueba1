@@ -19,9 +19,9 @@ const mensajes: Record<string, string> = {
     'auth/password-does-not-meet-requirements':
     'La contraseña no cumple la política del proyecto. Combina mayúsculas, minúsculas y números.',
     'auth/too-many-requests': 'Hubo demasiados intentos seguidos. Espera unos minutos y vuelve a intentarlo.',
-    'auth/network-request-failed': 'No hay conexion con Firebase. Revisa tu internet e intentalo otra vez.',
+    'auth/network-request-failed': 'No hay conexión con Firebase. Revisa tu internet e inténtalo otra vez.',
     'auth/requires-recent-login': 'Por seguridad, cierra sesión, vuelve a ingresar y repite el cambio.',
-    'auth/user-disabled': 'Esta cuenta fue deshabilitada. Comunicate con el administrador.',
+    'auth/user-disabled': 'Esta cuenta fue deshabilitada. Comunícate con el administrador.',
     // Este suele aparecer en clase: falta habilitar el proveedor en la consola.
     'auth/operation-not-allowed':
     'El acceso con correo y contraseña no está habilitado en la consola de Firebase.',
@@ -42,5 +42,5 @@ export function mensajeDeError(error:unknown, reemplazos: Record<string, string>
         //Para errores no previsos mostramos el codigo: ayuda a depurar
         return `No se pudo completar la operación (${error.code}).`;
     }
-    return 'Ocurrio un error inesperado. Intenta de nuevo.';
+    return 'Ocurrió un error inesperado. Intenta de nuevo.';
 }

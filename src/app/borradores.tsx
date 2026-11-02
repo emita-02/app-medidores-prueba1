@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { obtenerLecturasPorEstado, eliminarLectura, type Lectura } from '@/database/repository';
 import { useConnectionStatus } from '@/hooks/use-connection';
 import { sincronizarPendientes } from '@/services/sync.service';

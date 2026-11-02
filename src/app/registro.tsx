@@ -1,7 +1,7 @@
 /* Pantalla de registro de una cuenta nueva.
 
 * Ojo: este registro es abierto. Cualquier persona con un correo puede crear
-* una cuenta. El texto "estudiante de la ESFOT" de la bienvenida no verifica
+* una cuenta. El texto de la bienvenida no verifica
 * nada; para restringir de verdad habría que crear las cuentas desde la consola
 * o validar el dominio en el servidor.
 */
@@ -55,7 +55,7 @@ export default function PantallaRegistro() {
 
         try {
             await registrarse(nombre, correo, clave);
-            //Al crear la cuenta Firebase inicia sesión y el layout muestra la bienvenida.        } catch (error) {
+            //Al crear la cuenta Firebase inicia sesión y el layout muestra la bienvenida.
         } catch (error) {
             setErrorGeneral(mensajeDeError(error));
             setEnviando(false);

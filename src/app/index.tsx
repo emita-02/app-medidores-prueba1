@@ -30,9 +30,24 @@ import { sincronizarPendientes } from "@/services/sync.service";
 
 const CODIGO_REGEX = new RegExp("^MED-\\d{6}$");
 
+function cargarBorradorMasReciente(): Lectura | null {
+  inicializarBaseDeDatos();
+  try {
+    const borradores = obtenerLecturasPorEstado("borrador");
+    if (!borradores || borradores.length === 0) return null;
+    return [...borradores].sort((a, b) => {
+      if (b.fecha_modificacion > a.fecha_modificacion) return 1;
+      if (b.fecha_modificacion < a.fecha_modificacion) return -1;
+      return 0;
+    })[0];
+  } catch {
+    return null;
+  }
+}
+
 export default function HomeScreen() {
   const router = useRouter();
-  const { usuario, cerrarSesion } = useSesion();
+  const { usuario, nombre, cerrarSesion } = useSesion();
   const { isConnected, pendingCount, actualizarContador } =
     useConnectionStatus();
 
@@ -40,31 +55,7 @@ export default function HomeScreen() {
   const [consulta, setConsulta] = useState<ConsultaResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [consultando, setConsultando] = useState(false);
-  const [verificando, setVerificando] = useState<
-    "idle" | "ok" | "fallo" | null
-  >(null);
-  const [borradorPendiente, setBorradorPendiente] = useState<Lectura | null>(
-    null,
-  );
-
-  useEffect(() => {
-    inicializarBaseDeDatos();
-    try {
-      const borradores = obtenerLecturasPorEstado("borrador");
-      if (borradores && borradores.length > 0) {
-        const masReciente = [...borradores].sort((a, b) => {
-          if (b.fecha_modificacion > a.fecha_modificacion) return 1;
-          if (b.fecha_modificacion < a.fecha_modificacion) return -1;
-          return 0;
-        })[0];
-        setBorradorPendiente(masReciente);
-      } else {
-        setBorradorPendiente(null);
-      }
-    } catch {
-      setBorradorPendiente(null);
-    }
-  }, []);
+  const [borradorPendiente, setBorradorPendiente] = useState<Lectura | null>(cargarBorradorMasReciente);
 
   useEffect(() => {
     actualizarContador();
@@ -483,7 +474,7 @@ export default function HomeScreen() {
                 ¡Buen día,
               </ThemedText>
               <ThemedText type="smallBold" style={styles.userName}>
-                {usuario?.email}
+                {nombre ?? usuario?.email}
               </ThemedText>
             </View>
           </View>

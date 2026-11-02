@@ -2,6 +2,34 @@
 
 
 ================================================
+ðŸ“„ ARCHIVO: .env.example
+================================================
+
+# Copia este archivo como ".env.local" y reemplaza los valores con los de tu proyecto.
+# El prefijo EXPO_PUBLIC_ es obligatorio para que Expo inyecte la variable en la app.
+EXPO_PUBLIC_FIREBASE_API_KEY=tu-api-key
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=tu-proyecto.firebaseapp.com
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=tu-proyecto
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=tu-proyecto.firebasestorage.app
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=000000000000
+EXPO_PUBLIC_FIREBASE_APP_ID=1:000000000000:web:0000000000000000000000
+
+
+================================================
+ðŸ“„ ARCHIVO: .env.local
+================================================
+
+# Copia este archivo como ".env.local" y reemplaza los valores con los de tu proyecto.
+# El prefijo EXPO_PUBLIC_ es obligatorio para que Expo inyecte la variable en la app.
+EXPO_PUBLIC_FIREBASE_API_KEY=AIzaSyCan2lYXyoJd77BlK0d4TIPcay9fXml33k
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=app-medidores-7cd18.firebaseapp.com
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=app-medidores-7cd18
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=app-medidores-7cd18.firebasestorage.app
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=64177992155
+EXPO_PUBLIC_FIREBASE_APP_ID=1:64177992155:web:ff8610536f22aaefe337fe
+
+
+================================================
 ðŸ“„ ARCHIVO: .gitignore
 ================================================
 
@@ -541,6 +569,7 @@ module.exports = defineConfig([
   "dependencies": {
     "@expo/ui": "~58.0.25",
     "@expo/vector-icons": "^15.0.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/netinfo": "12.0.1",
     "expo": "~58.0.21",
     "expo-camera": "~58.0.14",
@@ -562,6 +591,7 @@ module.exports = defineConfig([
     "expo-symbols": "~58.0.4",
     "expo-system-ui": "~58.0.7",
     "expo-web-browser": "~58.0.7",
+    "firebase": "^13.1.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.1",
@@ -1192,6 +1222,134 @@ const styles = StyleSheet.create({
 });
 
 ================================================
+ðŸ“„ ARCHIVO: src\app\cambiar-clave.tsx
+================================================
+
+/* Cambiar contraseña (solo con sesión iniciada).
+
+Pedimos la contraseña actual por dos razones:
+1. Firebase exige un inicio de sesion reciente para cambiar la clave
+(si no, lanza auth/requires-recent-login). Con la clave actual
+reautenticamos al usuario en el momento.
+2. Si alguien toma un telefono desbloqueado, no puede cambiar la clave
+sin conocer la actual.
+*/
+
+import { router } from 'expo-router';
+import { useState } from 'react';
+
+import { Aviso } from '@/components/aviso';
+import { Boton } from '@/components/boton';
+import { CampoTexto } from '@/components/campo-texto';
+import { PantallaHoja } from '@/components/pantalla-hoja';
+import { useSesion } from '@/context/sesion';
+import { mensajeDeError } from '@/lib/errores-firebase';
+import {LONGITUD_MINIMA_CLAVE, validarClave, validarConfirmacion } from '@/lib/validaciones';
+
+type Errores = Partial<Record<'actual' | 'nueva' | 'confirmacion', string | null>>;
+
+export default function PantallaCambiarClave() {
+    const {cambiarClave } = useSesion();
+
+
+    const [actual, setActual] = useState('');
+    const [nueva, setNueva] = useState('');
+    const [confirmacion, setConfirmacion] = useState('');
+    const [errores, setErrores] = useState<Errores>({});
+    const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
+    const [listo, setListo] = useState(false);
+    const [enviando, setEnviando] = useState(false);
+
+    async function manejarCambio() {
+        const nuevosErrores: Errores = {
+            actual: actual ? null : 'Escribe tu contrasena actual.',
+
+            nueva:
+                validarClave(nueva) ??
+                (nueva === actual ? 'La nueva contrasena debe ser distinta de la actual.' : null),
+            confirmacion: validarConfirmacion(nueva, confirmacion),
+        };
+        setErrores(nuevosErrores);
+        setErrorGeneral(null);
+
+        if (Object.values(nuevosErrores).some(Boolean)) return;
+
+        setEnviando(true);
+
+        try {
+            await cambiarClave(actual, nueva);
+            setListo(true);
+            // Limpiamos los campos: no conviene dejar contraseñas en memoria visible.
+            setActual('');
+            setNueva('');
+            setConfirmacion('');
+        } catch (error) {
+            setErrorGeneral(
+                // En esta pantalla, "credencial invalida" significa clave actual incorrecta.
+                mensajeDeError(error, {
+                'auth/invalid-credential': 'La contraseña actual no es correcta.',
+                'auth/wrong-password': 'La contraseña actual no es correcta.',
+                }),
+            );
+        } finally {
+            setEnviando(false);
+        }
+    }
+
+    return (
+        <PantallaHoja
+        conVolver
+        titulo={'Cambia tu\ncontraseña'}
+        bajada={`Confirma la actual y elige una nueva de al menos ${LONGITUD_MINIMA_CLAVE} caracteres.`}>
+        {listo ? (
+            <Aviso
+            tipo="exito"
+            mensaje="Contraseña actualizada. La proxima vez que inicies sesión usa la nueva."
+            />
+        ): null}
+        {errorGeneral ? <Aviso tipo="error" mensaje={errorGeneral}/> : null}
+
+        <CampoTexto
+        etiqueta="Contraseña actual"
+        value={actual}
+        onChangeText={setActual}
+        error={errores.actual}
+        esClave
+        textContentType="password"
+        autoComplete="current-password"
+        />
+
+        <CampoTexto
+        etiqueta="Contraseña nueva"
+        value={nueva}
+        onChangeText={setNueva}
+        error={errores.nueva}
+        esClave
+        textContentType="newPassword"
+        autoComplete="new-password"
+        />
+
+        <CampoTexto
+        etiqueta="Repite la contraseña nueva"
+        value={confirmacion}
+        onChangeText={setConfirmacion}
+        error={errores.confirmacion}
+        esClave
+        textContentType="newPassword"
+        autoComplete="new-password"
+        onSubmitEditing={manejarCambio}
+        />
+
+        {listo ? (
+            <Boton texto="Volver a la bienvenida" onPress={() => router.back()}/>
+        ) : (
+            <Boton texto="Guardar contraseña" onPress={manejarCambio} cargando={enviando}/>
+        )}
+        </PantallaHoja>
+    );
+}
+
+================================================
 ðŸ“„ ARCHIVO: src\app\index.tsx
 ================================================
 
@@ -1211,14 +1369,14 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors, Spacing } from "@/constants/theme";
+import { useSesion } from "@/context/sesion";
 import {
   eliminarLectura,
   inicializarBaseDeDatos,
   obtenerLecturasPorEstado,
-  type Lectura
+  type Lectura,
 } from "@/database/repository";
 import { useConnectionStatus } from "@/hooks/use-connection";
-import { useAuth } from "@/services/auth-context";
 import {
   consultarMedidor,
   type ConsultaResult,
@@ -1229,7 +1387,7 @@ const CODIGO_REGEX = new RegExp("^MED-\\d{6}$");
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { session, loading: authLoading, logout } = useAuth();
+  const { usuario, cerrarSesion } = useSesion();
   const { isConnected, pendingCount, actualizarContador } =
     useConnectionStatus();
 
@@ -1306,8 +1464,7 @@ export default function HomeScreen() {
   };
 
   const handleLogout = async () => {
-    await logout();
-    router.replace("/login");
+    await cerrarSesion();
   };
 
   const handleConsultar = async () => {
@@ -1517,6 +1674,7 @@ export default function HomeScreen() {
       consulta.origen === "api"
         ? "Consultado en línea (MockAPI)"
         : "Consultado desde caché";
+
     return (
       <ThemedView style={[styles.cardResultado, styles.cardDatos]}>
         <ThemedView style={styles.badgeOnline}>
@@ -1610,9 +1768,22 @@ export default function HomeScreen() {
               Registro de lecturas de medidores
             </ThemedText>
           </View>
-          <Pressable style={styles.logoutIconButton} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={22} color="#FFFFFF" />
-          </Pressable>
+          <View style={{ flexDirection: "row", gap: Spacing.two }}>
+            <Pressable
+              style={styles.logoutIconButton}
+              onPress={() => router.push("/cambiar-clave")}
+              accessibilityLabel="Cambiar contraseña"
+            >
+              <Ionicons name="key-outline" size={22} color="#FFFFFF" />
+            </Pressable>
+            <Pressable
+              style={styles.logoutIconButton}
+              onPress={handleLogout}
+              accessibilityLabel="Cerrar sesión"
+            >
+              <Ionicons name="log-out-outline" size={22} color="#FFFFFF" />
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.statusRowContainer}>
@@ -1667,10 +1838,7 @@ export default function HomeScreen() {
                 ¡Buen día,
               </ThemedText>
               <ThemedText type="smallBold" style={styles.userName}>
-                Emily Pazmiño
-              </ThemedText>
-              <ThemedText type="code" style={styles.empleadoCode}>
-                Código: {session?.employeeCode ?? "EMP-001"}
+                {usuario?.email}
               </ThemedText>
             </View>
           </View>
@@ -3323,18 +3491,24 @@ const styles = StyleSheet.create({
 
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View, Image } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Spacing } from '@/constants/theme';
-import { useAuth } from '@/services/auth-context';
+
+import { router } from 'expo-router';
+import Animated from 'react-native-reanimated';
+
+import { useSesion } from '@/context/sesion';
+import { useSacudida } from '@/hooks/use-sacudida'; // el hook del mensaje anterior
+import { mensajeDeError } from '@/lib/errores-firebase';
+import { validarCorreo } from '@/lib/validaciones';
 
 export default function LoginScreen() {
-  const router = useRouter();
-  const { login, loading: authLoading } = useAuth();
-  const [employeeCode, setEmployeeCode] = React.useState('');
+  const { iniciarSesion } = useSesion();
+  const { estiloSacudida, sacudir } = useSacudida();
+  const [correo, setCorreo] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -3342,24 +3516,17 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     setError(null);
 
-    if (!employeeCode.trim()) {
-      setError('Ingrese su código de empleado.');
-      return;
-    }
-
-    if (!password.trim()) {
-      setError('Ingrese su contraseña.');
-      return;
-    }
+    const errorCorreo = validarCorreo(correo);
+    if (errorCorreo) { setError(errorCorreo); sacudir(); return; }
+    if (!password) { setError('Ingrese su contraseña.'); sacudir(); return; }
 
     setLoading(true);
-
     try {
-      await login(employeeCode.trim(), password);
-      router.replace('/');
-    } catch {
-      setError('Código de empleado o contraseña incorrectos.');
-    } finally {
+      await iniciarSesion(correo, password);
+      // Sin router.replace: Stack.Protected cambia de pantalla solo.
+    } catch (e) {
+      setError(mensajeDeError(e));
+      sacudir();
       setLoading(false);
     }
   };
@@ -3398,26 +3565,25 @@ export default function LoginScreen() {
       <View style={styles.cardContainer}>
         
 
-        <View style={styles.formGroup}>
+        <Animated.View style={estiloSacudida}>
           <ThemedText type="smallBold" style={styles.label} themeColor="primaryDark">
-            Código de empleado
+            Correo electrónico
           </ThemedText>
           <View style={styles.inputContainer}>
-            <Ionicons name="person-outline" size={20} color="#035AA6" style={styles.inputIcon} />
+            <Ionicons name="mail-outline" size={20} color="#035AA6" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              value={employeeCode}
-              onChangeText={setEmployeeCode}
-              placeholder="EMP-001"
+              value={correo}
+              onChangeText={setCorreo}
+              placeholder="nombre@correo.com"
               placeholderTextColor="#999"
-              autoCapitalize="characters"
-              autoComplete="off"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
               spellCheck={false}
             />
           </View>
-        </View>
 
-        <View style={styles.formGroup}>
           <ThemedText type="smallBold" style={styles.label} themeColor="primaryDark">
             Contraseña
           </ThemedText>
@@ -3434,31 +3600,43 @@ export default function LoginScreen() {
               spellCheck={false}
             />
           </View>
-        </View>
 
-        {error && (
-          <View style={styles.errorBanner}>
-            <ThemedText type="small" style={styles.errorText}>
-              {error}
-            </ThemedText>
-          </View>
-        )}
+          {error && (
+            <View style={styles.errorBanner}>
+              <ThemedText type="small" style={styles.errorText}>
+                {error}
+              </ThemedText>
+            </View>
+          )}
+        </Animated.View>
 
         <Pressable
-          style={[styles.button, (loading || authLoading) && styles.buttonDisabled]}
-          disabled={loading || authLoading}
+          style={[styles.button, (loading) && styles.buttonDisabled]}
+          disabled={loading}
           onPress={handleLogin}>
           <ThemedText type="smallBold" style={styles.buttonText}>
-            {loading || authLoading ? 'Ingresando...' : 'Iniciar sesión'}
+            {loading? 'Ingresando...' : 'Iniciar sesión'}
           </ThemedText>
         </Pressable>
 
-        <ThemedText type="small" style={styles.demoHint} themeColor="textSecondary">
-          Credenciales de demostración:{' '}
-          <ThemedText type="code" style={styles.demoCode} themeColor="textSecondary">
-            EMP-001 / clave123
+        <Pressable
+          onPress={() => router.push({ pathname: '/recuperar', params: { correo } })}
+          hitSlop={8}
+          style={styles.enlaceCentrado}>
+          <ThemedText type="smallBold" style={styles.enlace}>
+            ¿Olvidaste tu contraseña?
           </ThemedText>
-        </ThemedText>
+        </Pressable>
+        <View style={styles.pie}>
+          <ThemedText type="small" themeColor="textSecondary">
+            ¿Aún no tienes cuenta?
+          </ThemedText>
+          <Pressable onPress={() => router.push('/registro')} hitSlop={8}>
+            <ThemedText type="smallBold" style={styles.enlace}>
+              Crear cuenta
+            </ThemedText>
+          </Pressable>
+        </View>
       </View>
       <ThemedText type="code" style={styles.demoHint} themeColor="textSecondary">
         © 2026 EPMAPS - Distrito Metropolitano de Quito
@@ -3468,6 +3646,21 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  enlace: { 
+    color: '#035AA6', 
+    textDecorationLine: 'underline' 
+  },
+  enlaceCentrado: { 
+    alignItems: 'center', 
+    marginTop: Spacing.four 
+  },
+  pie: { 
+    flexDirection: 'row', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    gap: Spacing.two, 
+    marginTop: Spacing.three 
+  },
   scrollView: {
     flex: 1,
     backgroundColor: '#F2F2F2',
@@ -3601,50 +3794,369 @@ const styles = StyleSheet.create({
 });
 
 ================================================
+ðŸ“„ ARCHIVO: src\app\recuperar.tsx
+================================================
+
+/*Recuperar Contraseña
+Flujo completo:
+-El usuario escribe su correo y toca "Enviar enlace"
+-Firebase envía un correo (plantilla editale en la consola:
+    Authentication > Templates > Password Reset)
+-El enlace abre una página de Firebase donde se escribe la contraseña nueva
+-El estudiante vuelve a la app e inicia sesión con esa contraseña */
+
+import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
+
+import { Aviso } from '@/components/aviso';
+import { Boton } from '@/components/boton';
+import { CampoTexto } from '@/components/campo-texto';
+import { PantallaHoja } from '@/components/pantalla-hoja';
+import { useSesion } from '@/context/sesion';
+import { mensajeDeError } from '@/lib/errores-firebase';
+import { validarCorreo } from '@/lib/validaciones';
+
+export default function PantallaRecuperar() {
+    const {enviarCorreoRecuperacion} = useSesion();
+    //Recibimos el correo que el usuario ya habia escrito en el login (si lo hizo).
+    const param = useLocalSearchParams<{correo?: string}>();
+    const [correo, setCorreo] = useState(param.correo ?? '');
+    const [errorCampo, setErrorCampo] = useState<string | null>(null);
+    const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
+    const [enviado, setEnviado] = useState(false);
+    const [enviando, setEnviando] = useState(false);
+
+    async function manejarEnvio() {
+        const error = validarCorreo(correo);
+        setErrorCampo(error);
+        setErrorGeneral(null);
+        if (error) return;
+
+        setEnviando(true);
+        try {
+            await enviarCorreoRecuperacion(correo);
+            setEnviado(true);
+        } catch (e) {
+            setErrorGeneral(mensajeDeError(e));
+        } finally {
+            //Aqui si usamos finally: la pantalla sigue montada en ambos casos
+            setEnviando(false);
+        }
+    }
+
+    return (
+        <PantallaHoja 
+            conVolver
+            titulo={'Recupera\ntu acceso'}
+            bajada="Te enviaremos un enlace para que crees una contraseña nueva.">
+        {/*
+            Mensaje neutro a propósito: no confirmamos si el correo existe.
+        */}
+            {enviado ? (
+                <Aviso
+                tipo="exito"
+                mensaje={'Si ${correo.trim()} tiene una cuenta, en unos minutos recibirás el enlace. Revisa también la carpeta de spam.'}
+                />
+            ) : null}
+            {errorGeneral ? <Aviso tipo="error" mensaje={errorGeneral} /> : null}
+            
+            <CampoTexto
+                etiqueta="Correo de tu cuenta"
+                placeholder="nombre.apellido@gmail.com"
+                value={correo}
+                onChangeText={(texto) => {
+                    setCorreo(texto);
+                    setEnviado(false); //si cambia el correo, el aviso anterior ya no aplica
+                }}
+                error={errorCampo}
+                keyboardType="email-address"
+                textContentType="emailAddress"
+                autoComplete="email"
+                onSubmitEditing={manejarEnvio}
+            />
+            {enviado ? (
+                <>
+                    <Boton texto="Volver a iniciar sesión" onPress={() => router.back()} />
+                    <Boton variante="secundario" texto="Enviar otravexz" onPress={manejarEnvio} cargando={enviando} />
+                </>
+            ) : (
+                <Boton texto="Enviar enlace" onPress={manejarEnvio} cargando={enviando} />
+            )}
+        </PantallaHoja>
+    );
+}
+
+
+================================================
+ðŸ“„ ARCHIVO: src\app\registro.tsx
+================================================
+
+/* Pantalla de registro de una cuenta nueva.
+
+* Ojo: este registro es abierto. Cualquier persona con un correo puede crear
+* una cuenta. El texto "estudiante de la ESFOT" de la bienvenida no verifica
+* nada; para restringir de verdad habría que crear las cuentas desde la consola
+* o validar el dominio en el servidor.
+*/
+
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+
+import { Aviso } from '@/components/aviso';
+import { Boton } from '@/components/boton';
+import { CampoTexto } from '@/components/campo-texto';
+import { PantallaHoja } from '@/components/pantalla-hoja';
+import { useSesion } from '@/context/sesion';
+import { mensajeDeError } from '@/lib/errores-firebase';
+import {
+LONGITUD_MINIMA_CLAVE,
+validarClave,
+validarConfirmacion,
+validarCorreo,
+validarNombre,
+} from '@/lib/validaciones';
+import { Spacing } from '@/constants/theme';
+import { ThemedText } from '@/components/themed-text';
+
+type Errores = Partial<Record<'nombre' | 'correo' | 'clave' | 'confirmacion', string | null>>;
+
+export default function PantallaRegistro() {
+    const { registrarse } = useSesion();
+
+    const [nombre, setNombre] = useState('');
+    const [correo, setCorreo] = useState('');
+    const [clave, setClave] = useState('');
+    const [confirmacion, setConfirmacion] = useState('');
+    const [errores, setErrores] = useState<Errores>({});
+    const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
+    const [enviando, setEnviando] = useState(false);
+
+    async function manejarRegistro() {
+        const nuevosErrores: Errores = {
+            nombre: validarNombre(nombre),
+            correo: validarCorreo(correo),
+            clave: validarClave(clave),
+            confirmacion: validarConfirmacion(clave, confirmacion),
+        }
+        setErrores(nuevosErrores);
+        setErrorGeneral(null);
+        //Object.values + some: ¿hay al menos un error?
+        if (Object.values(nuevosErrores).some(Boolean)) {return;}
+
+        setEnviando(true);
+
+        try {
+            await registrarse(nombre, correo, clave);
+            //Al crear la cuenta Firebase inicia sesión y el layout muestra la bienvenida.        } catch (error) {
+        } catch (error) {
+            setErrorGeneral(mensajeDeError(error));
+            setEnviando(false);
+        } 
+    }
+
+    return (
+        <PantallaHoja
+        conVolver
+        titulo={'Crea tu\ncuenta'}
+        bajada="Con esta cuenta entrarás a la app desde cualquier teléfono.">
+        {errorGeneral ? <Aviso tipo="error" mensaje={errorGeneral} /> : null}
+
+        <CampoTexto
+            etiqueta="Nombre"
+            placeholder="Como quieres que te saludemos"
+            value={nombre}
+            onChangeText={setNombre}
+            error={errores.nombre}
+            autoCapitalize="words"
+            textContentType="name"
+            autoComplete="name"
+        />
+        <CampoTexto
+            etiqueta="Correo"
+            placeholder="nombre.apellido@gmail.com"
+            value={correo}
+            onChangeText={setCorreo}
+            error={errores.correo}
+            keyboardType="email-address"
+            textContentType="emailAddress"
+            autoComplete="email"
+        />  
+        <CampoTexto
+            etiqueta="Contraseña"
+            placeholder={`Mínimo ${LONGITUD_MINIMA_CLAVE} caracteres`}
+            value={clave}
+            onChangeText={setClave}
+            error={errores.clave}
+            esClave
+            // "newPassword" hace que iOS sugiera una contrasena segura.
+            textContentType="newPassword"
+            autoComplete="new-password"
+        />
+        <CampoTexto
+            etiqueta="Repite la contraseña"
+            value={confirmacion}
+            onChangeText={setConfirmacion}
+            error={errores.confirmacion}
+            esClave
+            textContentType="newPassword"
+            autoComplete="new-password"
+            onSubmitEditing={manejarRegistro}
+        />
+
+        <Boton texto="Crear cuenta" onPress={manejarRegistro} cargando={enviando} />
+
+        <View style={styles.pie}>
+            <ThemedText type="small" themeColor="textSecondary">¿Ya tienes cuenta?</ThemedText>
+            <Boton variante="enlace" texto="Inicia sesión" onPress={() => router.back()} />
+        </View>
+        </PantallaHoja>
+    );
+}
+
+const styles = StyleSheet.create({
+  pie: { 
+        flexDirection: 'row', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        gap: Spacing.two, 
+        marginTop: Spacing.three
+    },
+});
+
+
+
+
+================================================
+ðŸ“„ ARCHIVO: src\app\verificar-correo.tsx
+================================================
+
+import { useEffect, useState } from 'react';
+import { AppState } from 'react-native';
+
+import { Aviso } from '@/components/aviso';
+import { Boton } from '@/components/boton';
+import { PantallaHoja } from '@/components/pantalla-hoja';
+import { useSesion } from '@/context/sesion';
+import { mensajeDeError } from '@/lib/errores-firebase';
+
+const ESPERA_REENVIO_S = 60;
+
+export default function PantallaVerificarCorreo() {
+  const { usuario, reenviarVerificacion, comprobarVerificacion, cerrarSesion } = useSesion();
+  const [aviso, setAviso] = useState<{ tipo: 'error' | 'exito'; mensaje: string } | null>(null);
+  const [comprobando, setComprobando] = useState(false);
+  const [reenviando, setReenviando] = useState(false);
+  const [espera, setEspera] = useState(0);
+
+  // Cuenta regresiva para no spamear a Firebase (auth/too-many-requests).
+  useEffect(() => {
+    if (espera <= 0) return;
+    const id = setTimeout(() => setEspera((s) => s - 1), 1000);
+    return () => clearTimeout(id);
+  }, [espera]);
+
+  // Al volver del navegador tras abrir el enlace, se comprueba solo.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (estado) => {
+      if (estado === 'active') comprobarVerificacion().catch(() => {});
+    });
+    return () => sub.remove();
+  }, [comprobarVerificacion]);
+
+  async function manejarComprobacion() {
+    setAviso(null);
+    setComprobando(true);
+    try {
+      const ok = await comprobarVerificacion();
+      if (!ok) {
+        setAviso({ tipo: 'error', mensaje: 'Todavía no vemos tu correo verificado. Abre el enlace del mensaje y vuelve a intentarlo.' });
+      } // si ok, el layout te lleva solo a la bienvenida
+    } catch (e) {
+      setAviso({ tipo: 'error', mensaje: mensajeDeError(e) });
+    } finally {
+      setComprobando(false);
+    }
+  }
+
+  async function manejarReenvio() {
+    setAviso(null);
+    setReenviando(true);
+    try {
+      await reenviarVerificacion();
+      setAviso({ tipo: 'exito', mensaje: `Enviamos un nuevo correo a ${usuario?.email}. Revisa también el spam.` });
+      setEspera(ESPERA_REENVIO_S);
+    } catch (e) {
+      setAviso({ tipo: 'error', mensaje: mensajeDeError(e) });
+    } finally {
+      setReenviando(false);
+    }
+  }
+
+  return (
+    <PantallaHoja
+      titulo={'Verifica\ntu correo'}
+      bajada={`Enviamos un enlace a ${usuario?.email}. Ábrelo y luego vuelve aquí.`}>
+      {aviso ? <Aviso tipo={aviso.tipo} mensaje={aviso.mensaje} /> : null}
+      <Boton texto="Ya verifiqué mi correo" onPress={manejarComprobacion} cargando={comprobando} />
+      <Boton
+        variante="secundario"
+        texto={espera > 0 ? `Reenviar correo (${espera} s)` : 'Reenviar correo'}
+        onPress={manejarReenvio}
+        cargando={reenviando}
+        deshabilitado={espera > 0}
+      />
+      <Boton variante="enlace" texto="Usar otra cuenta" onPress={cerrarSesion} />
+    </PantallaHoja>
+  );
+}
+
+================================================
 ðŸ“„ ARCHIVO: src\app\_layout.tsx
 ================================================
 
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
-import LoginScreen from './login';
-import { AuthProvider, useAuth } from '@/services/auth-context';
+import { ProveedorSesion, useSesion } from '@/context/sesion';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <RootContent />
-    </AuthProvider>
+    <ProveedorSesion>
+      <Navegacion />
+    </ProveedorSesion>
   );
 }
 
-function RootContent() {
+function Navegacion() {
   const colorScheme = useColorScheme();
-  const { session, loading } = useAuth();
+  const { usuario, verificado, cargando } = useSesion();
 
-  if (loading) {
-    return (
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <AnimatedSplashOverlay />
-      </ThemeProvider>
-    );
-  }
-
-  if (!session) {
-    return <LoginScreen />;
-  }
+  useEffect(() => {
+    if (!cargando) SplashScreen.hideAsync();
+  }, [cargando]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      {/* Agregamos screenOptions={{ headerShown: false }} aquí */}
       <Stack screenOptions={{ headerShown: false }}>
-        <AppTabs />
+        <Stack.Protected guard={!!usuario && verificado}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="lectura" />
+          <Stack.Screen name="borradores" />
+          <Stack.Screen name="cambiar-clave" />
+        </Stack.Protected>
+        <Stack.Protected guard={!!usuario && !verificado}>
+          <Stack.Screen name="verificar-correo" />
+        </Stack.Protected>
+        <Stack.Protected guard={!usuario}>
+          <Stack.Screen name="login" />
+          <Stack.Screen name="registro" />
+          <Stack.Screen name="recuperar" />
+        </Stack.Protected>
       </Stack>
     </ThemeProvider>
   );
@@ -4078,6 +4590,210 @@ const styles = StyleSheet.create({
 
 
 ================================================
+ðŸ“„ ARCHIVO: src\components\aviso.tsx
+================================================
+
+/*Mensaje de resultado (error o exito) que aparece sobre el formulario
+La barra lateral de color permite distinguir el tipo sin leer el texto */
+
+import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, View } from 'react-native';
+
+import { ThemedText } from '@/components/themed-text';
+import { MedidoresColors, Spacing } from '@/constants/theme';
+
+export function Aviso({ tipo, mensaje }: { tipo: 'error' | 'exito'; mensaje: string }) {
+  const esError = tipo === 'error';
+  const color = esError ? MedidoresColors.error : '#22704F';
+  return (
+    <View
+      accessibilityRole="alert"
+      style={[styles.caja, { backgroundColor: esError ? '#FEE2E2' : '#E3F3EA', borderColor: color }]}>
+      <Ionicons name={esError ? 'alert-circle-outline' : 'checkmark-circle-outline'} size={18} color={color} />
+      <ThemedText type="small" style={[styles.texto, { color }]}>
+        {mensaje}
+      </ThemedText>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  caja: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.two,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    marginBottom: Spacing.four,
+  },
+  texto: { flex: 1, fontSize: 13, fontWeight: '600' },
+});
+
+================================================
+ðŸ“„ ARCHIVO: src\components\boton.tsx
+================================================
+
+import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
+
+import { ThemedText } from '@/components/themed-text';
+import { MedidoresColors, Spacing } from '@/constants/theme';
+
+type Props = {
+  texto: string;
+  onPress: () => void;
+  variante?: 'primario' | 'secundario' | 'enlace';
+  cargando?: boolean;
+  deshabilitado?: boolean;
+};
+
+export function Boton({ texto, onPress, variante = 'primario', cargando = false, deshabilitado = false }: Props) {
+  const inactivo = cargando || deshabilitado;
+
+  if (variante === 'enlace') {
+    return (
+      <Pressable onPress={onPress} disabled={inactivo} hitSlop={8} accessibilityRole="link">
+        <ThemedText type="smallBold" style={[styles.enlace, inactivo && { opacity: 0.5 }]}>
+          {texto}
+        </ThemedText>
+      </Pressable>
+    );
+  }
+
+  const primario = variante === 'primario';
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={inactivo}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: inactivo, busy: cargando }}
+      style={[
+        styles.boton,
+        primario ? styles.primario : styles.secundario,
+        inactivo && (primario ? styles.primarioInactivo : { opacity: 0.6 }),
+      ]}>
+      {cargando ? (
+        <ActivityIndicator color={primario ? '#FFFFFF' : MedidoresColors.primary} />
+      ) : (
+        <ThemedText type="smallBold" style={[styles.texto, !primario && { color: MedidoresColors.primary }]}>
+          {texto}
+        </ThemedText>
+      )}
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  boton: {
+    borderRadius: 12,
+    paddingVertical: Spacing.three,
+    minHeight: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.two,
+  },
+  primario: {
+    backgroundColor: '#035AA6',
+    shadowColor: '#035AA6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  primarioInactivo: { backgroundColor: '#9CC3E6' },
+  secundario: { borderWidth: 1.5, borderColor: '#035AA6', backgroundColor: 'transparent' },
+  texto: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  enlace: { color: '#035AA6', textDecorationLine: 'underline' },
+});
+
+================================================
+ðŸ“„ ARCHIVO: src\components\campo-texto.tsx
+================================================
+
+/*Campo de texto con etiqueta, estado de foco, mensaje de error y
+si es una contraseña, el boton para mostrarla u ocultarla */
+
+import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
+import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+
+import { ThemedText } from '@/components/themed-text';
+import { MedidoresColors, Spacing } from '@/constants/theme';
+
+type Props = TextInputProps & {
+  etiqueta: string;
+  error?: string | null;
+  esClave?: boolean;
+  icono?: keyof typeof Ionicons.glyphMap;
+};
+
+export function CampoTexto({ etiqueta, error, esClave = false, icono, style, ...props }: Props) {
+  const [claveVisible, setClaveVisible] = useState(false);
+  const iconoFinal =
+    icono ??
+    (esClave ? 'lock-closed-outline' : props.keyboardType === 'email-address' ? 'mail-outline' : 'person-outline');
+
+  return (
+    <View style={styles.formGroup}>
+      <ThemedText type="smallBold" style={styles.label} themeColor="primaryDark">
+        {etiqueta}
+      </ThemedText>
+      <View style={[styles.inputContainer, error ? styles.inputError : null]}>
+        <Ionicons name={iconoFinal} size={20} color={MedidoresColors.primary} style={styles.inputIcon} />
+        <TextInput
+          {...props}
+          style={[styles.input, style]}
+          placeholderTextColor="#999"
+          secureTextEntry={esClave && !claveVisible}
+          autoCapitalize={props.autoCapitalize ?? 'none'}
+          autoCorrect={false}
+          spellCheck={false}
+          accessibilityLabel={etiqueta}
+        />
+        {esClave && (
+          <Pressable
+            onPress={() => setClaveVisible((v) => !v)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={claveVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
+            <Ionicons
+              name={claveVisible ? 'eye-off-outline' : 'eye-outline'}
+              size={20}
+              color={MedidoresColors.primary}
+            />
+          </Pressable>
+        )}
+      </View>
+      {error ? (
+        <ThemedText type="small" style={styles.error}>
+          {error}
+        </ThemedText>
+      ) : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  formGroup: { marginBottom: Spacing.four },
+  label: { fontSize: 13, fontWeight: '700', marginBottom: Spacing.half },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    minHeight: 52,
+    paddingHorizontal: Spacing.three,
+  },
+  inputError: { borderColor: MedidoresColors.error },
+  inputIcon: { marginRight: Spacing.two },
+  input: { flex: 1, fontSize: 16, color: '#1E293B', paddingVertical: 0 },
+  error: { color: MedidoresColors.error, fontSize: 13, fontWeight: '600', marginTop: Spacing.one },
+});
+
+================================================
 ðŸ“„ ARCHIVO: src\components\external-link.tsx
 ================================================
 
@@ -4148,6 +4864,97 @@ const styles = StyleSheet.create({
   },
 });
 
+
+================================================
+ðŸ“„ ARCHIVO: src\components\pantalla-hoja.tsx
+================================================
+
+/*Pantalla común para todas las pantallas:
+- Centralizar esto en un componente hace que cada pantalla solo se ocupe
+de su logica y no tenga que repetir el manejo del teclado ni de las zonas seguras */
+
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import type { ReactNode } from 'react';
+import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+
+import { ThemedText } from '@/components/themed-text';
+import { Spacing } from '@/constants/theme';
+
+type Props = { titulo: string; bajada?: string; conVolver?: boolean; children: ReactNode };
+
+export function PantallaHoja({ titulo, bajada, conVolver = false, children }: Props) {
+  return (
+    <KeyboardAvoidingView style={styles.raiz} behavior="padding">
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <View style={styles.header}>
+          {conVolver && (
+            <Pressable
+              onPress={() => router.back()}
+              accessibilityRole="button"
+              accessibilityLabel="Volver"
+              hitSlop={12}
+              style={styles.volver}>
+              <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
+            </Pressable>
+          )}
+          <ThemedText type="title" style={styles.headerCompanyTitle} themeColor="text">
+            EPMAPS
+          </ThemedText>
+          <ThemedText type="smallBold" style={styles.headerCompanySubtitle} themeColor="textSecondary">
+            AGUA DE QUITO
+          </ThemedText>
+        </View>
+
+        <View style={styles.cardContainer}>
+          <ThemedText type="title" style={styles.titulo} themeColor="primaryDark">
+            {titulo}
+          </ThemedText>
+          {bajada ? (
+            <ThemedText type="small" style={styles.bajada} themeColor="textSecondary">
+              {bajada}
+            </ThemedText>
+          ) : null}
+          {children}
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  raiz: { flex: 1, backgroundColor: '#F2F2F2' },
+  container: { flexGrow: 1, paddingBottom: Spacing.six },
+  header: {
+    paddingVertical: Spacing.four,
+    paddingHorizontal: Spacing.five,
+    alignItems: 'center',
+    backgroundColor: '#035AA6',
+  },
+  headerCompanyTitle: { fontSize: 24, fontWeight: '900', color: '#FFFFFF', letterSpacing: 1 },
+  headerCompanySubtitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#F2F2F2',
+    letterSpacing: 2,
+    marginTop: 2,
+  },
+  volver: { position: 'absolute', left: Spacing.three, top: Spacing.four, padding: Spacing.two },
+  cardContainer: {
+    marginHorizontal: Spacing.four,
+    marginTop: Spacing.four,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: Spacing.five,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  titulo: { fontSize: 22, fontWeight: 'bold' },
+  bajada: { fontSize: 13, marginTop: Spacing.one, marginBottom: Spacing.four },
+});
 
 ================================================
 ðŸ“„ ARCHIVO: src\components\themed-text.tsx
@@ -4355,6 +5162,50 @@ const styles = StyleSheet.create({
 
 
 ================================================
+ðŸ“„ ARCHIVO: src\config\firebase.ts
+================================================
+
+// Conexión con Firebase para Android e iOS
+//Expo elige este archivo en el movil
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {getApp, getApps, initializeApp} from 'firebase/app';
+import {getAuth, getReactNativePersistence, initializeAuth, type Auth} from 'firebase/auth';
+
+//Los valores vienen del archivo .env.local Expo solo expone a la app
+//Las variables que empiezan con EXPO_PUBLIC_.
+const firebaseConfig = {
+    apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+}
+
+//Con la recarga rapida (Fast Refresh) este módulo se puede ejecutar mas de una vez
+//getApps() evita el error "Firebase App named '[DEFAULT]' already exists"
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+
+//initializeAuth() solo se puede llamar una vez por app. Si ya existe, lo reutilizamos.
+function crearAuth(): Auth {
+    try{
+        //getReactNativePersistence guarda la sesion en AsyncStorage: asi el 
+        //usuario sigue conectado aunque cierre la app. Sin esto, la sesión
+        //vive solo en memoria y se pierde al reiniciar
+        return initializeAuth(app, {
+            persistence: getReactNativePersistence(AsyncStorage),
+        });
+    } catch {
+        return getAuth(app);
+    }
+}
+export const auth = crearAuth();
+
+//Los correos de recuperación de contraseña llegarán en español
+auth.languageCode = 'es';
+
+================================================
 ðŸ“„ ARCHIVO: src\constants\api.ts
 ================================================
 
@@ -4457,6 +5308,168 @@ export const Spacing = {
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
+
+
+================================================
+ðŸ“„ ARCHIVO: src\context\sesion.tsx
+================================================
+
+import { auth } from "@/config/firebase";
+import {
+    createUserWithEmailAndPassword,
+    EmailAuthProvider,
+    onAuthStateChanged,
+    reauthenticateWithCredential,
+    reload,
+    sendEmailVerification,
+    sendPasswordResetEmail,
+    signInWithEmailAndPassword,
+    signOut,
+    updatePassword,
+    updateProfile,
+    type User,
+} from "firebase/auth";
+import { createContext, use, useEffect, useState, type ReactNode } from "react";
+
+type ValorSesion = {
+  /** Usuario conectado, o null si nadie ha iniciado sesión. */
+  usuario: User | null;
+  /** Nombre del perfil (displayName), siempre actualizado tras el registro. */
+  nombre: string | null;
+  /** true mientras Firebase revisa si hay una sesión guardada. */
+  cargando: boolean;
+  iniciarSesion: (correo: string, clave: string) => Promise<void>;
+  registrarse: (nombre: string, correo: string, clave: string) => Promise<void>;
+  enviarCorreoRecuperacion: (correo: string) => Promise<void>;
+  cambiarClave: (claveActual: string, claveNueva: string) => Promise<void>;
+  cerrarSesion: () => Promise<void>;
+
+  verificado: boolean;
+  reenviarVerificacion: () => Promise<void>;
+  comprobarVerificacion: () => Promise<boolean>;
+};
+
+const ContextoSesion = createContext<ValorSesion | null>(null);
+
+//Hook para leer la sesion desde cualquier pantalla
+export function useSesion(): ValorSesion {
+  //'use' es la forma moderna (React 19) de leer un contexto
+  const valor = use(ContextoSesion);
+  if (!valor) {
+    throw new Error("useSesion debe usarse dentro de un <ProveedorSesion>.");
+  }
+  return valor;
+}
+
+export function ProveedorSesion({ children }: { children: ReactNode }) {
+  const [usuario, setUsuario] = useState<User | null>(null);
+  const [cargando, setCargando] = useState(true);
+  // Nombre del perfil guardado aparte: updateProfile modifica el mismo objeto
+  // `user` sin cambiar su referencia, así que React no detectaría el cambio
+  // si las pantallas leyeran usuario.displayName directamente.
+  const [nombre, setNombre] = useState<string | null>(null);
+  const [verificado, setVerificado] = useState(false);
+
+  useEffect(() => {
+    // onAuthStateChanged se dispara al arrancar (con la sesión guardada o null)
+    // y cada vez que alguien inicia o cierra sesión. Es la fuente de verdad:
+    // la navegación (Stack.Protected en _layout.tsx) depende de este estado.
+    const cancelarSuscripcion = onAuthStateChanged(auth, (usuarioFirebase) => {
+      setUsuario(usuarioFirebase);
+      setNombre(usuarioFirebase?.displayName ?? null);
+      setCargando(false);
+      setVerificado(usuarioFirebase?.emailVerified ?? false);
+    });
+    // Al desmontar el proveedor dejamos de escuchar para no fugar memoria.
+    return cancelarSuscripcion;
+  }, []);
+
+  async function iniciarSesion(correo: string, clave: string) {
+    await signInWithEmailAndPassword(auth, correo.trim(), clave);
+    // No navegamos aquí: onAuthStateChanged actualiza `usuario` y el
+    // Stack.Protected muestra automáticamente la pantalla de bienvenida.
+  }
+
+  async function registrarse(
+    nombreCompleto: string,
+    correo: string,
+    clave: string,
+  ) {
+    // Crear la cuenta también inicia la sesión.
+    const credencial = await createUserWithEmailAndPassword(
+      auth,
+      correo.trim(),
+      clave,
+    );
+    // Guardamos el nombre en el perfil de Firebase (campo displayName).
+    const nombreLimpio = nombreCompleto.trim();
+    await updateProfile(credencial.user, { displayName: nombreLimpio });
+    // La bienvenida ya se mostró (onAuthStateChanged corre al crear la cuenta,
+    // antes de updateProfile), así que actualizamos el nombre en el estado.
+    setNombre(nombreLimpio);
+    try {
+      await sendEmailVerification(credencial.user);
+    } catch {
+      /* se puede reenviar luego */
+    }
+  }
+
+  async function reenviarVerificacion() {
+    if (!auth.currentUser) throw new Error("No hay una sesión activa.");
+    await sendEmailVerification(auth.currentUser);
+  }
+
+  async function comprobarVerificacion() {
+    const actual = auth.currentUser;
+    if (!actual) return false;
+    await reload(actual); // emailVerified no se actualiza solo
+    setVerificado(actual.emailVerified);
+    return actual.emailVerified;
+  }
+
+  async function enviarCorreoRecuperacion(correo: string) {
+    // Firebase envía un correo con un enlace a su página de restablecimiento.
+    // Si el correo no existe, por la protección de enumeración NO lanza error:
+    // por eso la pantalla muestra un mensaje neutro.
+    await sendPasswordResetEmail(auth, correo.trim());
+  }
+
+  async function cambiarClave(claveActual: string, claveNueva: string) {
+    const actual = auth.currentUser;
+    if (!actual?.email) throw new Error("No hay una sesión activa.");
+
+    // updatePassword es una operación sensible: Firebase la rechaza con
+    // "auth/requires-recent-login" si la sesión no es reciente. Por eso
+    // primero confirmamos la identidad con la contraseña actual.
+    const credencial = EmailAuthProvider.credential(actual.email, claveActual);
+    await reauthenticateWithCredential(actual, credencial);
+    await updatePassword(actual, claveNueva);
+  }
+
+  async function cerrarSesion() {
+    await signOut(auth);
+  }
+
+  return (
+    <ContextoSesion
+      value={{
+        usuario,
+        nombre,
+        cargando,
+        iniciarSesion,
+        registrarse,
+        enviarCorreoRecuperacion,
+        cambiarClave,
+        cerrarSesion,
+        verificado,
+        reenviarVerificacion,
+        comprobarVerificacion,
+      }}
+    >
+      {children}
+    </ContextoSesion>
+  );
+}
 
 
 ================================================
@@ -4930,6 +5943,34 @@ export async function obtenerConteoPendientes(): Promise<number> {
 
 
 ================================================
+ðŸ“„ ARCHIVO: src\hooks\use-sacudida.ts
+================================================
+
+import { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
+
+export function useSacudida(amplitud = 10) {
+  const desplazamiento = useSharedValue(0);
+
+  const estiloSacudida = useAnimatedStyle(() => ({
+    transform: [{ translateX: desplazamiento.get() }],
+  }));
+
+  function sacudir() {
+    desplazamiento.set(
+      withSequence(
+        withTiming(-amplitud, { duration: 50 }),
+        withTiming(amplitud, { duration: 100 }),
+        withTiming(-amplitud, { duration: 100 }),
+        withTiming(amplitud, { duration: 100 }),
+        withTiming(0, { duration: 50 }),
+      ),
+    );
+  }
+
+  return { estiloSacudida, sacudir };
+}
+
+================================================
 ðŸ“„ ARCHIVO: src\hooks\use-theme.ts
 ================================================
 
@@ -4947,6 +5988,101 @@ export function useTheme() {
 
   return Colors[theme];
 }
+
+
+================================================
+ðŸ“„ ARCHIVO: src\lib\errores-firebase.ts
+================================================
+
+/* Traduce los códigos de error de Firebase Auth a mensajes claros en español
+Firebase devuelve errores como "auth/invalid-credential". Mostrar eso al 
+usuario no sirve: el mensake debe decir que paso y cómo corregirlo. */
+
+import { FirebaseError } from 'firebase/app';
+
+const mensajes: Record<string, string> = {
+    /*Desde 2023 los proyectos nuevos tienen activada la "proteccion contra la enumeración de correos":
+    Firebase ya no distingue entre "el correo no existe" y "la contraseña es incorrecta". Ambos llegan como invalid-credential*/
+
+    'auth/invalid-credential': 'El correo o la contraseña no coinciden. Revisa los datos e inténtalo de nuevo.',
+    'auth/wrong-password': 'El correo o la contraseña no coinciden. Revisa los datos e inténtalo de nuevo.',
+    'auth/user-not-found': 'El correo o la contraseña no coinciden. Revisa los datos e inténtalo de nuevo.',
+    'auth/invalid-email': 'El correo no tiene un formato válido.',
+    'auth/missing-email': 'Escribe tu correo para continuar.',
+    'auth/missing-password': 'Escribe tu contraseña para continuar.',
+    'auth/email-already-in-use': 'Ya existe una cuenta con ese correo. Inicia sesión o recupera tu contraseña.',
+    'auth/weak-password': 'La contraseña es muy débil. Usa al menos 8 caracteres.',
+    'auth/password-does-not-meet-requirements':
+    'La contraseña no cumple la política del proyecto. Combina mayúsculas, minúsculas y números.',
+    'auth/too-many-requests': 'Hubo demasiados intentos seguidos. Espera unos minutos y vuelve a intentarlo.',
+    'auth/network-request-failed': 'No hay conexion con Firebase. Revisa tu internet e intentalo otra vez.',
+    'auth/requires-recent-login': 'Por seguridad, cierra sesión, vuelve a ingresar y repite el cambio.',
+    'auth/user-disabled': 'Esta cuenta fue deshabilitada. Comunicate con el administrador.',
+    // Este suele aparecer en clase: falta habilitar el proveedor en la consola.
+    'auth/operation-not-allowed':
+    'El acceso con correo y contraseña no está habilitado en la consola de Firebase.',
+    'auth/invalid-api-key': 'La configuración de Firebase no es válida. Revisa el archivo .env.local.',
+};
+
+/*
+*@param error lo que llego al bloque catch
+@param reemplazos Mensajes propios de una pantalla para ciertos codigo
+Ejemplo: al cambiar la contraseña, invalid-credential significa
+"La contraseña actual no es correcta", no "El correo no coincide" */
+export function mensajeDeError(error:unknown, reemplazos: Record<string, string> = {}):string{
+    if (error instanceof FirebaseError) {
+        if (reemplazos[error.code]) return reemplazos[error.code];
+        if (mensajes[error.code]) return mensajes[error.code];
+        //La API key mal copiada produce un codigo largo que empieza asi
+        if (error.code.startsWith('auth/api-key-not-valid')) return mensajes['auth/invalid-api-key'];
+        //Para errores no previsos mostramos el codigo: ayuda a depurar
+        return `No se pudo completar la operación (${error.code}).`;
+    }
+    return 'Ocurrio un error inesperado. Intenta de nuevo.';
+}
+
+================================================
+ðŸ“„ ARCHIVO: src\lib\validaciones.ts
+================================================
+
+/*
+Validaciones del lado del cliente
+sirven para dar respuesta inmediatamente sin gastar una peticion a Firebase
+No reemplazan la validación del servidor: Firebase vuelve a validar todo.
+Cada función devuelve un mensaje de error o null si el valor es válido.
+*/
+
+//Patrón simple: algo@algo.dominio. La validación estricta la hace Firebase
+const PATRON_CORREO=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+//Firebase exige 6 caracteres como minimo; pero vamos a pedir 8
+export const LONGITUD_MINIMA_CLAVE=8;
+
+export function validarCorreo(correo: string): string | null {
+    if (!correo.trim()) return 'Escribe tu correo electrónico.';
+    if (!PATRON_CORREO.test(correo.trim())) return 'Revisa el formato de tu correo.';
+    return null;
+}
+
+export function validarClave(clave:string): string | null {
+    if (!clave) return 'Escribe tu contraseña.';
+    if (clave.length < LONGITUD_MINIMA_CLAVE) {
+        return `La contraseña debe tener al menos ${LONGITUD_MINIMA_CLAVE} caracteres.`;
+    };
+    return null;
+}
+
+export function validarConfirmacion(clave:string, confirmacion:string): string | null {
+    if (!confirmacion) return 'Confirma tu contraseña.';
+    if (clave !== confirmacion) return 'Las contraseñas no coinciden.';
+    return null;
+}
+
+export function validarNombre(nombre:string): string | null {
+    if (nombre.trim().length < 3) return 'Escribe tu nombre (mínimo 3 letras).';
+    return null;
+}
+
 
 
 ================================================
@@ -5453,7 +6589,11 @@ export function obtenerLimitacionIdempotencia(): string {
       ],
       "@/assets/*": [
         "./assets/*"
+      ],
+      "@firebase/auth" : [
+        "./node_modules/@firebase/auth/dist/index.rn.d.ts"
       ]
+
     }
   },
   "include": [

@@ -35,11 +35,11 @@ export default function PantallaCambiarClave() {
 
     async function manejarCambio() {
         const nuevosErrores: Errores = {
-            actual: actual ? null : 'Escribe tu contrasena actual.',
+            actual: actual ? null : 'Escribe tu contraseña actual.',
 
             nueva:
                 validarClave(nueva) ??
-                (nueva === actual ? 'La nueva contrasena debe ser distinta de la actual.' : null),
+                (nueva === actual ? 'La nueva contraseña debe ser distinta de la actual.' : null),
             confirmacion: validarConfirmacion(nueva, confirmacion),
         };
         setErrores(nuevosErrores);
@@ -77,7 +77,7 @@ export default function PantallaCambiarClave() {
         {listo ? (
             <Aviso
             tipo="exito"
-            mensaje="Contraseña actualizada. La proxima vez que inicies sesión usa la nueva."
+            mensaje="Contraseña actualizada. La próxima vez que inicies sesión usa la nueva."
             />
         ): null}
         {errorGeneral ? <Aviso tipo="error" mensaje={errorGeneral}/> : null}
@@ -114,7 +114,7 @@ export default function PantallaCambiarClave() {
         />
 
         {listo ? (
-            <Boton texto="Volver a la bienvenida" onPress={() => router.back()}/>
+            <Boton texto="Volver" onPress={() => router.back()}/>
         ) : (
             <Boton texto="Guardar contraseña" onPress={manejarCambio} cargando={enviando}/>
         )}
