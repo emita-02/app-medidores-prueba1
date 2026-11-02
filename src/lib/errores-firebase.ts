@@ -33,7 +33,7 @@ const mensajes: Record<string, string> = {
 @param reemplazos Mensajes propios de una pantalla para ciertos codigo
 Ejemplo: al cambiar la contraseña, invalid-credential significa
 "La contraseña actual no es correcta", no "El correo no coincide" */
-export function mensajesDeError(error:unknown, reemplazos: Record<string, string> = {}):string{
+export function mensajeDeError(error:unknown, reemplazos: Record<string, string> = {}):string{
     if (error instanceof FirebaseError) {
         if (reemplazos[error.code]) return reemplazos[error.code];
         if (mensajes[error.code]) return mensajes[error.code];

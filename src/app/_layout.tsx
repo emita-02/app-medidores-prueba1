@@ -3,47 +3,44 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 
-import { AuthProvider, useAuth } from '@/services/auth-context';
+import { ProveedorSesion, useSesion } from '@/context/sesion';
 
 SplashScreen.preventAutoHideAsync();
 
-function SplashController() {
-  const { loading } = useAuth();
-
-  useEffect(() => {
-    if (!loading) {
-      SplashScreen.hideAsync();
-    }
-  }, [loading]);
-
-  return null;
+export default function RootLayout() {
+  return (
+    <ProveedorSesion>
+      <Navegacion />
+    </ProveedorSesion>
+  );
 }
 
-function RootNavigator() {
+function Navegacion() {
   const colorScheme = useColorScheme();
-  const { session } = useAuth();
+  const { usuario, verificado, cargando } = useSesion();
+
+  useEffect(() => {
+    if (!cargando) SplashScreen.hideAsync();
+  }, [cargando]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Protected guard={!!session}>
+        <Stack.Protected guard={!!usuario && verificado}>
           <Stack.Screen name="index" />
           <Stack.Screen name="lectura" />
           <Stack.Screen name="borradores" />
+          <Stack.Screen name="cambiar-clave" />
         </Stack.Protected>
-        <Stack.Protected guard={!session}>
+        <Stack.Protected guard={!!usuario && !verificado}>
+          <Stack.Screen name="verificar-correo" />
+        </Stack.Protected>
+        <Stack.Protected guard={!usuario}>
           <Stack.Screen name="login" />
+          <Stack.Screen name="registro" />
+          <Stack.Screen name="recuperar" />
         </Stack.Protected>
       </Stack>
     </ThemeProvider>
-  );
-}
-
-export default function RootLayout() {
-  return (
-    <AuthProvider>
-      <SplashController />
-      <RootNavigator />
-    </AuthProvider>
   );
 }

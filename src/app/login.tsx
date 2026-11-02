@@ -1,17 +1,23 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View, Image } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Spacing } from '@/constants/theme';
-import { useAuth } from '@/services/auth-context';
+
+import { router } from 'expo-router';
+import Animated from 'react-native-reanimated';
+
+import { useSesion } from '@/context/sesion';
+import { useSacudida } from '@/hooks/use-sacudida'; // el hook del mensaje anterior
+import { mensajeDeError } from '@/lib/errores-firebase';
+import { validarCorreo } from '@/lib/validaciones';
 
 export default function LoginScreen() {
-  const router = useRouter();
-  const { login, loading: authLoading } = useAuth();
-  const [employeeCode, setEmployeeCode] = React.useState('');
+  const { iniciarSesion } = useSesion();
+  const { estiloSacudida, sacudir } = useSacudida();
+  const [correo, setCorreo] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -19,24 +25,17 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     setError(null);
 
-    if (!employeeCode.trim()) {
-      setError('Ingrese su código de empleado.');
-      return;
-    }
-
-    if (!password.trim()) {
-      setError('Ingrese su contraseña.');
-      return;
-    }
+    const errorCorreo = validarCorreo(correo);
+    if (errorCorreo) { setError(errorCorreo); sacudir(); return; }
+    if (!password) { setError('Ingrese su contraseña.'); sacudir(); return; }
 
     setLoading(true);
-
     try {
-      await login(employeeCode.trim(), password);
-      router.replace('/');
-    } catch {
-      setError('Código de empleado o contraseña incorrectos.');
-    } finally {
+      await iniciarSesion(correo, password);
+      // Sin router.replace: Stack.Protected cambia de pantalla solo.
+    } catch (e) {
+      setError(mensajeDeError(e));
+      sacudir();
       setLoading(false);
     }
   };
@@ -75,26 +74,25 @@ export default function LoginScreen() {
       <View style={styles.cardContainer}>
         
 
-        <View style={styles.formGroup}>
+        <Animated.View style={estiloSacudida}>
           <ThemedText type="smallBold" style={styles.label} themeColor="primaryDark">
-            Código de empleado
+            Correo electrónico
           </ThemedText>
           <View style={styles.inputContainer}>
-            <Ionicons name="person-outline" size={20} color="#035AA6" style={styles.inputIcon} />
+            <Ionicons name="mail-outline" size={20} color="#035AA6" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              value={employeeCode}
-              onChangeText={setEmployeeCode}
-              placeholder="EMP-001"
+              value={correo}
+              onChangeText={setCorreo}
+              placeholder="nombre@correo.com"
               placeholderTextColor="#999"
-              autoCapitalize="characters"
-              autoComplete="off"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
               spellCheck={false}
             />
           </View>
-        </View>
 
-        <View style={styles.formGroup}>
           <ThemedText type="smallBold" style={styles.label} themeColor="primaryDark">
             Contraseña
           </ThemedText>
@@ -111,31 +109,43 @@ export default function LoginScreen() {
               spellCheck={false}
             />
           </View>
-        </View>
 
-        {error && (
-          <View style={styles.errorBanner}>
-            <ThemedText type="small" style={styles.errorText}>
-              {error}
-            </ThemedText>
-          </View>
-        )}
+          {error && (
+            <View style={styles.errorBanner}>
+              <ThemedText type="small" style={styles.errorText}>
+                {error}
+              </ThemedText>
+            </View>
+          )}
+        </Animated.View>
 
         <Pressable
-          style={[styles.button, (loading || authLoading) && styles.buttonDisabled]}
-          disabled={loading || authLoading}
+          style={[styles.button, (loading) && styles.buttonDisabled]}
+          disabled={loading}
           onPress={handleLogin}>
           <ThemedText type="smallBold" style={styles.buttonText}>
-            {loading || authLoading ? 'Ingresando...' : 'Iniciar sesión'}
+            {loading? 'Ingresando...' : 'Iniciar sesión'}
           </ThemedText>
         </Pressable>
 
-        <ThemedText type="small" style={styles.demoHint} themeColor="textSecondary">
-          Credenciales de demostración:{' '}
-          <ThemedText type="code" style={styles.demoCode} themeColor="textSecondary">
-            EMP-001 / clave123
+        <Pressable
+          onPress={() => router.push({ pathname: '/recuperar', params: { correo } })}
+          hitSlop={8}
+          style={styles.enlaceCentrado}>
+          <ThemedText type="smallBold" style={styles.enlace}>
+            ¿Olvidaste tu contraseña?
           </ThemedText>
-        </ThemedText>
+        </Pressable>
+        <View style={styles.pie}>
+          <ThemedText type="small" themeColor="textSecondary">
+            ¿Aún no tienes cuenta?
+          </ThemedText>
+          <Pressable onPress={() => router.push('/registro')} hitSlop={8}>
+            <ThemedText type="smallBold" style={styles.enlace}>
+              Crear cuenta
+            </ThemedText>
+          </Pressable>
+        </View>
       </View>
       <ThemedText type="code" style={styles.demoHint} themeColor="textSecondary">
         © 2026 EPMAPS - Distrito Metropolitano de Quito
@@ -145,6 +155,21 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  enlace: { 
+    color: '#035AA6', 
+    textDecorationLine: 'underline' 
+  },
+  enlaceCentrado: { 
+    alignItems: 'center', 
+    marginTop: Spacing.four 
+  },
+  pie: { 
+    flexDirection: 'row', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    gap: Spacing.two, 
+    marginTop: Spacing.three 
+  },
   scrollView: {
     flex: 1,
     backgroundColor: '#F2F2F2',
