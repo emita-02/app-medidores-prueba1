@@ -65,7 +65,7 @@ export default function PantallaRegistro() {
     return (
         <PantallaHoja
         conVolver
-        titulo={'Crea tu\ncuenta'}
+        titulo={'Crea tu cuenta'}
         bajada="Con esta cuenta entrarás a la app desde cualquier teléfono.">
         {errorGeneral ? <Aviso tipo="error" mensaje={errorGeneral} /> : null}
 
@@ -102,6 +102,7 @@ export default function PantallaRegistro() {
         />
         <CampoTexto
             etiqueta="Repite la contraseña"
+            placeholder={`Mínimo ${LONGITUD_MINIMA_CLAVE} caracteres`}
             value={confirmacion}
             onChangeText={setConfirmacion}
             error={errores.confirmacion}

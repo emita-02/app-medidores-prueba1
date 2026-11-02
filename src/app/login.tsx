@@ -20,6 +20,7 @@ export default function LoginScreen() {
   const [password, setPassword] = React.useState('');
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [verPassword, setVerPassword] = React.useState(false);
 
   const handleLogin = async () => {
     setError(null);
@@ -106,10 +107,19 @@ export default function LoginScreen() {
                 onChangeText={setPassword}
                 placeholder="••••••••"
                 placeholderTextColor="#999"
-                secureTextEntry
+                secureTextEntry = {!verPassword}
+                autoCapitalize="none"
                 autoComplete="off"
+                autoCorrect={false}
                 spellCheck={false}
               />
+              <Pressable
+                onPress={() => setVerPassword((v) => !v)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={verPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
+                <Ionicons name={verPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#035AA6" />
+              </Pressable>
             </View>
           </View>
 

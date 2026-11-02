@@ -72,7 +72,7 @@ export default function PantallaCambiarClave() {
     return (
         <PantallaHoja
         conVolver
-        titulo={'Cambia tu\ncontraseña'}
+        titulo={'Cambia tu contraseña'}
         bajada={`Confirma la actual y elige una nueva de al menos ${LONGITUD_MINIMA_CLAVE} caracteres.`}>
         {listo ? (
             <Aviso
