@@ -48,3 +48,4 @@ const styles = StyleSheet.create({
     etiqueta: { fontSize: 13, fontWeight: '700' },
     sugerencia: { fontSize: 12 },
 });
+

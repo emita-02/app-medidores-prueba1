@@ -83,3 +83,4 @@ export function evaluarFortaleza(clave: string): ResultadoFortaleza {
 
     return { nivel, puntaje, sugerencia };
 }
+

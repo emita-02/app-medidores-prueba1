@@ -81,3 +81,4 @@ const styles = StyleSheet.create({
   input: { flex: 1, fontSize: 16, color: '#1E293B', paddingVertical: 0 },
   error: { color: MedidoresColors.error, fontSize: 13, fontWeight: '600', marginTop: Spacing.one },
 });
+
