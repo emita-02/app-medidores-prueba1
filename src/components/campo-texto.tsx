@@ -2,7 +2,7 @@
 si es una contraseña, el boton para mostrarla u ocultarla */
 
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -13,9 +13,10 @@ type Props = TextInputProps & {
   error?: string | null;
   esClave?: boolean;
   icono?: keyof typeof Ionicons.glyphMap;
+  pie?: ReactNode;
 };
 
-export function CampoTexto({ etiqueta, error, esClave = false, icono, style, ...props }: Props) {
+export function CampoTexto({ etiqueta, error, esClave = false, icono, pie, style, ...props }: Props) {
   const [claveVisible, setClaveVisible] = useState(false);
   const iconoFinal =
     icono ??
@@ -57,6 +58,7 @@ export function CampoTexto({ etiqueta, error, esClave = false, icono, style, ...
           {error}
         </ThemedText>
       ) : null}
+      {pie}
     </View>
   );
 }

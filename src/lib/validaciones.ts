@@ -36,3 +36,50 @@ export function validarNombre(nombre:string): string | null {
     return null;
 }
 
+// ---------- Indicador de seguridad ----------
+
+export type NivelFortaleza = 'debil' | 'media' | 'fuerte';
+
+export type ResultadoFortaleza = {
+    nivel: NivelFortaleza;
+    /** De 0 a 5 */
+    puntaje: number;
+    /** Qué mejorar a continuación, o null si ya es fuerte. */
+    sugerencia: string | null;
+};
+
+// Contraseñas muy usadas: aunque cumplan el largo, nunca se consideran seguras.
+const CLAVES_COMUNES = [
+    '12345678', '123456789', '1234567890', 'password', 'password1',
+    'contraseña', 'contrasena', 'qwerty123', 'admin123', 'abcd1234', '11111111',
+];
+
+export function evaluarFortaleza(clave: string): ResultadoFortaleza {
+    const tieneMinuscula = /[a-záéíóúüñ]/.test(clave);
+    const tieneMayuscula = /[A-ZÁÉÍÓÚÜÑ]/.test(clave);
+    const tieneNumero = /\d/.test(clave);
+    const tieneSimbolo = /[^A-Za-z0-9áéíóúüñÁÉÍÓÚÜÑ\s]/.test(clave);
+    const tieneMezcla = tieneMinuscula && tieneMayuscula;
+    const esComun = CLAVES_COMUNES.includes(clave.toLowerCase());
+
+    let puntaje = 0;
+    if (clave.length >= LONGITUD_MINIMA_CLAVE) puntaje++;
+    if (clave.length >= 12) puntaje++;
+    if (tieneMezcla) puntaje++;
+    if (tieneNumero) puntaje++;
+    if (tieneSimbolo) puntaje++;
+
+    let nivel: NivelFortaleza = puntaje <= 2 ? 'debil' : puntaje === 3 ? 'media' : 'fuerte';
+    if (clave.length < LONGITUD_MINIMA_CLAVE || esComun) nivel = 'debil';
+
+    let sugerencia: string | null = null;
+    if (esComun) sugerencia = 'Es una contraseña muy común, elige otra.';
+    else if (clave.length < LONGITUD_MINIMA_CLAVE) sugerencia = `Usa al menos ${LONGITUD_MINIMA_CLAVE} caracteres.`;
+    else if (!tieneMezcla) sugerencia = 'Combina mayúsculas y minúsculas.';
+    else if (!tieneNumero) sugerencia = 'Agrega un número.';
+    else if (!tieneSimbolo) sugerencia = 'Agrega un símbolo, por ejemplo ! # $ %.';
+    else if (clave.length < 12) sugerencia = 'Con 12 o más caracteres será más segura.';
+    if (nivel === 'fuerte') sugerencia = null;
+
+    return { nivel, puntaje, sugerencia };
+}

@@ -25,6 +25,7 @@ validarNombre,
 } from '@/lib/validaciones';
 import { Spacing } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
+import { IndicadorFortaleza } from '@/components/indicador-fortaleza';
 
 type Errores = Partial<Record<'nombre' | 'correo' | 'clave' | 'confirmacion', string | null>>;
 
@@ -99,6 +100,7 @@ export default function PantallaRegistro() {
             // "newPassword" hace que iOS sugiera una contrasena segura.
             textContentType="newPassword"
             autoComplete="new-password"
+            pie={<IndicadorFortaleza clave={clave} />}
         />
         <CampoTexto
             etiqueta="Repite la contraseña"

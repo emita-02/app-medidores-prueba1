@@ -18,6 +18,7 @@ import { PantallaHoja } from '@/components/pantalla-hoja';
 import { useSesion } from '@/context/sesion';
 import { mensajeDeError } from '@/lib/errores-firebase';
 import {LONGITUD_MINIMA_CLAVE, validarClave, validarConfirmacion } from '@/lib/validaciones';
+import { IndicadorFortaleza } from '@/components/indicador-fortaleza';
 
 type Errores = Partial<Record<'actual' | 'nueva' | 'confirmacion', string | null>>;
 
@@ -83,34 +84,35 @@ export default function PantallaCambiarClave() {
         {errorGeneral ? <Aviso tipo="error" mensaje={errorGeneral}/> : null}
 
         <CampoTexto
-        etiqueta="Contraseña actual"
-        value={actual}
-        onChangeText={setActual}
-        error={errores.actual}
-        esClave
-        textContentType="password"
-        autoComplete="current-password"
+            etiqueta="Contraseña actual"
+            value={actual}
+            onChangeText={setActual}
+            error={errores.actual}
+            esClave
+            textContentType="password"
+            autoComplete="current-password"
         />
 
         <CampoTexto
-        etiqueta="Contraseña nueva"
-        value={nueva}
-        onChangeText={setNueva}
-        error={errores.nueva}
-        esClave
-        textContentType="newPassword"
-        autoComplete="new-password"
+            etiqueta="Contraseña nueva"
+            value={nueva}
+            onChangeText={setNueva}
+            error={errores.nueva}
+            esClave
+            textContentType="newPassword"
+            autoComplete="new-password"
+            pie={<IndicadorFortaleza clave={nueva} />}
         />
 
         <CampoTexto
-        etiqueta="Repite la contraseña nueva"
-        value={confirmacion}
-        onChangeText={setConfirmacion}
-        error={errores.confirmacion}
-        esClave
-        textContentType="newPassword"
-        autoComplete="new-password"
-        onSubmitEditing={manejarCambio}
+            etiqueta="Repite la contraseña nueva"
+            value={confirmacion}
+            onChangeText={setConfirmacion}
+            error={errores.confirmacion}
+            esClave
+            textContentType="newPassword"
+            autoComplete="new-password"
+            onSubmitEditing={manejarCambio}
         />
 
         {listo ? (
