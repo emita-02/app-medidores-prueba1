@@ -27,10 +27,9 @@ function Navegacion() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Protected guard={!!usuario && verificado}>
-          <Stack.Screen name="index" />
+          <Stack.Screen name="(tabs)" />
           <Stack.Screen name="lectura" />
           <Stack.Screen name="borradores" />
-          <Stack.Screen name="cambiar-clave" />
         </Stack.Protected>
         <Stack.Protected guard={!!usuario && !verificado}>
           <Stack.Screen name="verificar-correo" />

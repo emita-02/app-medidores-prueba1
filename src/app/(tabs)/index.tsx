@@ -407,13 +407,6 @@ export default function HomeScreen() {
           <View style={{ flexDirection: "row", gap: Spacing.two }}>
             <Pressable
               style={styles.logoutIconButton}
-              onPress={() => router.push("/cambiar-clave")}
-              accessibilityLabel="Cambiar contraseña"
-            >
-              <Ionicons name="key-outline" size={22} color="#FFFFFF" />
-            </Pressable>
-            <Pressable
-              style={styles.logoutIconButton}
               onPress={handleLogout}
               accessibilityLabel="Cerrar sesión"
             >

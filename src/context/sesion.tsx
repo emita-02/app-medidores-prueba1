@@ -31,6 +31,8 @@ type ValorSesion = {
   verificado: boolean;
   reenviarVerificacion: () => Promise<void>;
   comprobarVerificacion: () => Promise<boolean>;
+  //Nuevo campo para actualizar el nombre del usuario en el perfil de Firebase
+  actualizarNombre: (nuevoNombre: string) => Promise<void>;
 };
 
 const ContextoSesion = createContext<ValorSesion | null>(null);
@@ -130,6 +132,16 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     await updatePassword(actual, claveNueva);
   }
 
+    async function actualizarNombre(nuevoNombre: string) {
+      const actual = auth.currentUser;
+      if (!actual) throw new Error("No hay una sesión activa.");
+      const nombreLimpio = nuevoNombre.trim();
+      await updateProfile(actual, { displayName: nombreLimpio });
+      // updateProfile modifica el mismo objeto `user` sin cambiar su referencia;
+      // por eso actualizamos también el estado, para que Inicio y Perfil se redibujen.
+      setNombre(nombreLimpio);
+    }
+
   async function cerrarSesion() {
     await signOut(auth);
   }
@@ -148,6 +160,7 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
         verificado,
         reenviarVerificacion,
         comprobarVerificacion,
+        actualizarNombre,
       }}
     >
       {children}

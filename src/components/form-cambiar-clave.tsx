@@ -1,30 +1,24 @@
-/* Cambiar contraseña (solo con sesión iniciada).
+/* Formulario de cambio de contraseña (antes era la pantalla cambiar-clave.tsx; ahora vive en Perfil).
 
 Pedimos la contraseña actual por dos razones:
-1. Firebase exige un inicio de sesion reciente para cambiar la clave
-(si no, lanza auth/requires-recent-login). Con la clave actual
-reautenticamos al usuario en el momento.
-2. Si alguien toma un telefono desbloqueado, no puede cambiar la clave
-sin conocer la actual.
-*/
+1. Firebase exige un inicio de sesión reciente para cambiar la clave
+   (si no, lanza auth/requires-recent-login). Con la clave actual reautenticamos.
+2. Si alguien toma un teléfono desbloqueado, no puede cambiar la clave sin conocer la actual. */
 
-import { router } from 'expo-router';
 import { useState } from 'react';
 
 import { Aviso } from '@/components/aviso';
 import { Boton } from '@/components/boton';
 import { CampoTexto } from '@/components/campo-texto';
-import { PantallaHoja } from '@/components/pantalla-hoja';
+import { IndicadorFortaleza } from '@/components/indicador-fortaleza';
 import { useSesion } from '@/context/sesion';
 import { mensajeDeError } from '@/lib/errores-firebase';
-import {LONGITUD_MINIMA_CLAVE, validarClave, validarConfirmacion } from '@/lib/validaciones';
-import { IndicadorFortaleza } from '@/components/indicador-fortaleza';
+import { validarClave, validarConfirmacion } from '@/lib/validaciones';
 
 type Errores = Partial<Record<'actual' | 'nueva' | 'confirmacion', string | null>>;
 
-export default function PantallaCambiarClave() {
-    const {cambiarClave } = useSesion();
-
+export function FormCambiarClave() {
+    const { cambiarClave } = useSesion();
 
     const [actual, setActual] = useState('');
     const [nueva, setNueva] = useState('');
@@ -37,7 +31,6 @@ export default function PantallaCambiarClave() {
     async function manejarCambio() {
         const nuevosErrores: Errores = {
             actual: actual ? null : 'Escribe tu contraseña actual.',
-
             nueva:
                 validarClave(nueva) ??
                 (nueva === actual ? 'La nueva contraseña debe ser distinta de la actual.' : null),
@@ -45,11 +38,11 @@ export default function PantallaCambiarClave() {
         };
         setErrores(nuevosErrores);
         setErrorGeneral(null);
+        setListo(false);
 
         if (Object.values(nuevosErrores).some(Boolean)) return;
 
         setEnviando(true);
-
         try {
             await cambiarClave(actual, nueva);
             setListo(true);
@@ -59,7 +52,7 @@ export default function PantallaCambiarClave() {
             setConfirmacion('');
         } catch (error) {
             setErrorGeneral(
-                // En esta pantalla, "credencial invalida" significa clave actual incorrecta.
+                // En esta pantalla, "credencial inválida" significa clave actual incorrecta.
                 mensajeDeError(error, {
                 'auth/invalid-credential': 'La contraseña actual no es correcta.',
                 'auth/wrong-password': 'La contraseña actual no es correcta.',
@@ -71,17 +64,14 @@ export default function PantallaCambiarClave() {
     }
 
     return (
-        <PantallaHoja
-        conVolver
-        titulo={'Cambia tu contraseña'}
-        bajada={`Confirma la actual y elige una nueva de al menos ${LONGITUD_MINIMA_CLAVE} caracteres.`}>
+        <>
         {listo ? (
             <Aviso
             tipo="exito"
             mensaje="Contraseña actualizada. La próxima vez que inicies sesión usa la nueva."
             />
-        ): null}
-        {errorGeneral ? <Aviso tipo="error" mensaje={errorGeneral}/> : null}
+        ) : null}
+        {errorGeneral ? <Aviso tipo="error" mensaje={errorGeneral} /> : null}
 
         <CampoTexto
             etiqueta="Contraseña actual"
@@ -115,12 +105,7 @@ export default function PantallaCambiarClave() {
             onSubmitEditing={manejarCambio}
         />
 
-        {listo ? (
-            <Boton texto="Volver" onPress={() => router.back()}/>
-        ) : (
-            <Boton texto="Guardar contraseña" onPress={manejarCambio} cargando={enviando}/>
-        )}
-        </PantallaHoja>
+        <Boton texto="Guardar contraseña" onPress={manejarCambio} cargando={enviando} />
+        </>
     );
 }
-
