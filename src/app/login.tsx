@@ -6,12 +6,13 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 
 import { router } from 'expo-router';
-import Animated from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
 
 import { useSesion } from '@/context/sesion';
 import { useSacudida } from '@/hooks/use-sacudida'; // el hook del mensaje anterior
 import { mensajeDeError } from '@/lib/errores-firebase';
 import { validarCorreo } from '@/lib/validaciones';
+
 
 export default function LoginScreen() {
   const { iniciarSesion } = useSesion();
@@ -56,7 +57,7 @@ export default function LoginScreen() {
         </ThemedText>
       </View>
       {/* Logo y Nombre de la App */}
-        <View style={styles.appBrandContainer}>
+        <Animated.View entering={FadeInDown.delay(100).springify().damping(18)} style={styles.appBrandContainer}>
           <Image 
             source={require('@/assets/images/icono_app_aquauio.png')} 
             style={styles.appIcon}
@@ -68,12 +69,11 @@ export default function LoginScreen() {
           <ThemedText type="small" style={styles.appSubDescription} themeColor="textSecondary">
             Sistema Móvil de Registro de Lecturas
           </ThemedText>
-        </View>
+        </Animated.View>
 
       {/* Contenedor principal estilo Tarjeta */}
-      <View style={styles.cardContainer}>
+      <Animated.View entering={FadeInDown.delay(250).springify().damping(18)} style={styles.cardContainer}>
         
-
         <Animated.View style={estiloSacudida}>
           <View style={styles.formGroup}>
             <ThemedText type="smallBold" style={styles.label} themeColor="primaryDark">
@@ -124,11 +124,13 @@ export default function LoginScreen() {
           </View>
 
           {error && (
-            <View style={styles.errorBanner}>
-              <ThemedText type="small" style={styles.errorText}>
-                {error}
-              </ThemedText>
-            </View>
+            <Animated.View key={error} entering={FadeInDown.springify().damping(15)} exiting={FadeOutUp.duration(200)}>
+              <View style={styles.errorBanner}>
+                <ThemedText type="small" style={styles.errorText}>
+                  {error}
+                </ThemedText>
+              </View>
+            </Animated.View>
           )}
         </Animated.View>
 
@@ -159,7 +161,7 @@ export default function LoginScreen() {
             </ThemedText>
           </Pressable>
         </View>
-      </View>
+      </Animated.View>
       <ThemedText type="code" style={styles.demoHint} themeColor="textSecondary">
         © 2026 EPMAPS - Distrito Metropolitano de Quito
       </ThemedText>

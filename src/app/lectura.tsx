@@ -21,6 +21,9 @@ import { hayConexion } from '@/services/medidor.service';
 import { useConnectionStatus } from '@/hooks/use-connection';
 import { sincronizarPendientes } from '@/services/sync.service';
 
+import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
+
+
 let ImagePicker: any = null;
 
 try {
@@ -809,19 +812,23 @@ export default function LecturaScreen() {
         </View>
 
         {error && (
-          <View style={styles.errorBanner}>
-            <ThemedText type="small" style={styles.errorText} themeColor="text">
-              {error}
-            </ThemedText>
-          </View>
+          <Animated.View key={error} entering={FadeInDown.springify().damping(15)} exiting={FadeOutUp.duration(200)}>
+            <View style={styles.errorBanner}>
+              <ThemedText type="small" style={styles.errorText}>
+                {error}
+              </ThemedText>
+            </View>
+          </Animated.View>
         )}
 
         {exito && (
-          <View style={styles.exitoBanner}>
-            <ThemedText type="small" style={styles.exitoText} themeColor="text">
-              {exito}
-            </ThemedText>
-          </View>
+          <Animated.View key={exito} entering={FadeInDown.springify().damping(15)} exiting={FadeOutUp.duration(200)}>
+            <View style={styles.exitoBanner}>
+              <ThemedText type="small" style={styles.exitoText} themeColor="text">
+                {exito}
+              </ThemedText>
+            </View>
+          </Animated.View>
         )}
 
         <Pressable

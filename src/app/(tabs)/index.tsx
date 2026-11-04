@@ -28,6 +28,11 @@ import {
 } from "@/services/medidor.service";
 import { sincronizarPendientes } from "@/services/sync.service";
 
+import Animated, { FadeInDown, FadeInRight, FadeOutRight, FadeOutUp } from "react-native-reanimated";
+import { Aparecer } from "@/components/animados/aparecer";
+import { EstadoConexion } from "@/components/animados/estado-conexion";
+import { PressableAnimado } from "@/components/animados/pressable-animado";
+
 const CODIGO_REGEX = new RegExp("^MED-\\d{6}$");
 
 function cargarBorradorMasReciente(): Lectura | null {
@@ -56,6 +61,8 @@ export default function HomeScreen() {
   const [error, setError] = useState<string | null>(null);
   const [consultando, setConsultando] = useState(false);
   const [borradorPendiente, setBorradorPendiente] = useState<Lectura | null>(cargarBorradorMasReciente);
+
+  const [consultaId, setConsultaId] = useState(0);
 
   useEffect(() => {
     actualizarContador();
@@ -120,6 +127,7 @@ export default function HomeScreen() {
     try {
       const resultado = await consultarMedidor(valor);
       setConsulta(resultado);
+      setConsultaId((n) => n + 1);
       if (resultado.estado === "error") {
         setError(resultado.mensaje);
       }
@@ -232,8 +240,7 @@ export default function HomeScreen() {
               style={styles.mensajeResultado}
               themeColor="textSecondary"
             >
-              No hay conexión y no existe información previa de este medidor en
-              SQLite.
+              No hay conexión y no existe información previa de este medidor.
             </ThemedText>
           </ThemedView>
         );
@@ -264,7 +271,7 @@ export default function HomeScreen() {
             style={styles.mensajeResultado}
             themeColor="textSecondary"
           >
-            Sin conexión. Mostrando datos guardados en SQLite, consultados el{" "}
+            Sin conexión. Mostrando datos guardados en cache, consultados el{" "}
             {formatearFecha(medidor.fecha_consulta)}.
             {vencida ? " La caché superó un día de vigencia." : ""}
           </ThemedText>
@@ -379,99 +386,88 @@ export default function HomeScreen() {
       keyboardShouldPersistTaps="handled"
     >
       {/* Cabecera institucional moderna */}
-      <View style={styles.header}>
-        <View style={styles.headerTopRow}>
-          <View>
-            <ThemedText
-              type="title"
-              style={styles.headerTitle}
-              themeColor="text"
-            >
-              EPMAPS
-            </ThemedText>
-            <ThemedText
-              type="smallBold"
-              style={styles.headerSubtitle}
-              themeColor="textSecondary"
-            >
-              AGUA DE QUITO
-            </ThemedText>
-            <ThemedText
-              type="smallBold"
-              style={styles.headerSubtitle}
-              themeColor="textSecondary"
-            >
-              Registro de lecturas de medidores
-            </ThemedText>
-          </View>
-          <View style={{ flexDirection: "row", gap: Spacing.two }}>
-            <Pressable
-              style={styles.logoutIconButton}
-              onPress={handleLogout}
-              accessibilityLabel="Cerrar sesión"
-            >
-              <Ionicons name="log-out-outline" size={22} color="#FFFFFF" />
-            </Pressable>
-          </View>
-        </View>
-
-        <View style={styles.statusRowContainer}>
-          <View style={styles.statusRow}>
-            <ThemedText
-              type="small"
-              style={styles.statusText}
-              themeColor="text"
-            >
-              {isConnected === false ? "● Sin conexión" : "● Conectado"}
-            </ThemedText>
-            {pendingCount > 0 && (
+      <Aparecer tipo="fade">
+        <View style={styles.header}>
+          <View style={styles.headerTopRow}>
+            <View>
               <ThemedText
-                type="small"
-                style={styles.statusText}
+                type="title"
+                style={styles.headerTitle}
                 themeColor="text"
               >
-                | Pendientes: {pendingCount}
+                EPMAPS
               </ThemedText>
-            )}
-          </View>
-          {isConnected !== false && pendingCount > 0 && (
-            <Pressable
-              style={styles.syncButton}
-              onPress={() => {
-                sincronizarPendientes()
-                  .then(() => actualizarContador())
-                  .catch(() => actualizarContador());
-              }}
-            >
               <ThemedText
                 type="smallBold"
-                style={styles.syncButtonText}
-                themeColor="text"
+                style={styles.headerSubtitle}
+                themeColor="textSecondary"
               >
-                Sincronizar ahora
+                AGUA DE QUITO
               </ThemedText>
-            </Pressable>
-          )}
+              <ThemedText
+                type="smallBold"
+                style={styles.headerSubtitle}
+                themeColor="textSecondary"
+              >
+                Registro de lecturas de medidores
+              </ThemedText>
+            </View>
+            <View style={{ flexDirection: "row", gap: Spacing.two }}>
+              <Pressable
+                style={styles.logoutIconButton}
+                onPress={handleLogout}
+                accessibilityLabel="Cerrar sesión"
+              >
+                <Ionicons name="log-out-outline" size={22} color="#FFFFFF" />
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={styles.statusRowContainer}>
+            <EstadoConexion isConnected={isConnected} pendingCount={pendingCount} />
+            {isConnected !== false && pendingCount > 0 && (
+              <PressableAnimado
+                entering={FadeInRight.springify().damping(18)}
+                exiting={FadeOutRight}
+                style={styles.syncButton}
+                onPress={() => {
+                  sincronizarPendientes()
+                    .then(() => actualizarContador())
+                    .catch(() => actualizarContador());
+                }}
+              >
+                <ThemedText
+                  type="smallBold"
+                  style={styles.syncButtonText}
+                  themeColor="text"
+                >
+                  Sincronizar ahora
+                </ThemedText>
+              </PressableAnimado>
+            )}
+          </View>
         </View>
-      </View>
+      </Aparecer>
 
       {/* Tarjeta de bienvenida / Sesión de la operadora */}
       <View style={styles.cardContainer}>
-        <View style={styles.userCard}>
-          <View style={styles.userInfo}>
-            <View style={styles.avatarContainer}>
-              <Ionicons name="person" size={24} color="#035AA6" />
-            </View>
-            <View>
-              <ThemedText type="small" style={styles.welcomeLabel}>
-                ¡Buen día,
-              </ThemedText>
-              <ThemedText type="smallBold" style={styles.userName}>
-                {nombre ?? usuario?.email}
-              </ThemedText>
+        <Aparecer retraso={100}>
+          <View style={styles.userCard}>
+            <View style={styles.userInfo}>
+              <View style={styles.avatarContainer}>
+                <Ionicons name="person" size={24} color="#035AA6" />
+              </View>
+              <View>
+                <ThemedText type="small" style={styles.welcomeLabel}>
+                  ¡Buen día,
+                </ThemedText>
+                <ThemedText type="smallBold" style={styles.userName}>
+                  {nombre ?? usuario?.email}
+                </ThemedText>
+              </View>
             </View>
           </View>
-        </View>
+        </Aparecer>
 
         {borradorPendiente ? (
           <ThemedView
@@ -527,114 +523,124 @@ export default function HomeScreen() {
           </ThemedView>
         ) : null}
 
-        <View style={styles.consultaSection}>
-          <View style={styles.sectionHeaderRow}>
-            <Ionicons name="search-outline" size={20} color="#035AA6" />
+        <Aparecer retraso={200} conLayout>
+          <View style={styles.consultaSection}>
+            <View style={styles.sectionHeaderRow}>
+              <Ionicons name="search-outline" size={20} color="#035AA6" />
+              <ThemedText
+                type="smallBold"
+                style={styles.sectionTitle}
+                themeColor="primaryDark"
+              >
+                Consulta de medidor
+              </ThemedText>
+            </View>
+
             <ThemedText
               type="smallBold"
-              style={styles.sectionTitle}
+              style={styles.label}
               themeColor="primaryDark"
             >
-              Consulta de medidor
+              Código del medidor
             </ThemedText>
-          </View>
+            <View style={styles.inputContainer}>
+              <Ionicons
+                name="barcode-outline"
+                size={20}
+                color="#035AA6"
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                value={codigo}
+                onChangeText={setCodigo}
+                placeholder="MED-000001"
+                placeholderTextColor="#999"
+                autoCapitalize="characters"
+                autoComplete="off"
+                spellCheck={false}
+                editable={!consultando}
+              />
+            </View>
 
-          <ThemedText
-            type="smallBold"
-            style={styles.label}
-            themeColor="primaryDark"
-          >
-            Código del medidor
-          </ThemedText>
-          <View style={styles.inputContainer}>
-            <Ionicons
-              name="barcode-outline"
-              size={20}
-              color="#035AA6"
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={styles.input}
-              value={codigo}
-              onChangeText={setCodigo}
-              placeholder="MED-000001"
-              placeholderTextColor="#999"
-              autoCapitalize="characters"
-              autoComplete="off"
-              spellCheck={false}
-              editable={!consultando}
-            />
-          </View>
+            {error && (
+              <Animated.View 
+                key={error} 
+                entering={FadeInDown.springify().damping(15)} 
+                exiting={FadeOutUp.duration(200)}
+              >
+                <ThemedView style={styles.errorBanner}>
+                  <ThemedText type="small" style={styles.errorText} themeColor="text">
+                    {error}
+                  </ThemedText>
+                </ThemedView>
+              </Animated.View>
+            )}
 
-          {error && (
-            <ThemedView style={styles.errorBanner}>
+            <Pressable
+              style={[styles.button, consultando && styles.buttonDisabled]}
+              disabled={consultando}
+              onPress={handleConsultar}
+            >
               <ThemedText
-                type="small"
-                style={styles.errorText}
+                type="smallBold"
+                style={styles.buttonText}
                 themeColor="text"
               >
-                {error}
+                {consultando ? "Consultando..." : "Consultar medidor"}
               </ThemedText>
-            </ThemedView>
-          )}
+            </Pressable>
 
-          <Pressable
-            style={[styles.button, consultando && styles.buttonDisabled]}
-            disabled={consultando}
-            onPress={handleConsultar}
-          >
+            {consultando && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={Colors.light.primary} />
+              </View>
+            )}
+
             <ThemedText
-              type="smallBold"
-              style={styles.buttonText}
-              themeColor="text"
+              type="small"
+              style={styles.chip}
+              themeColor="textSecondary"
             >
-              {consultando ? "Consultando..." : "Consultar medidor"}
+              {chipTexto()}
             </ThemedText>
-          </Pressable>
 
-          {consultando && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={Colors.light.primary} />
-            </View>
-          )}
-
-          <ThemedText
-            type="small"
-            style={styles.chip}
-            themeColor="textSecondary"
-          >
-            {chipTexto()}
-          </ThemedText>
-
-          {renderResultado()}
-        </View>
-
-        <View style={styles.divisor} />
-
-        <View style={styles.borradoresSection}>
-          <View style={styles.sectionHeaderRow}>
-            <Ionicons name="document-text-outline" size={20} color="#035AA6" />
-            <ThemedText
-              type="smallBold"
-              style={styles.sectionTitle}
-              themeColor="primaryDark"
-            >
-              Borradores y registros
-            </ThemedText>
+            {consulta ? (
+              <Animated.View key={consultaId} entering={FadeInDown.springify().damping(16)}>
+                {renderResultado()}
+              </Animated.View>
+            ) : null}
           </View>
-          <Pressable
-            style={styles.buttonSecundario}
-            onPress={() => router.push("/borradores")}
-          >
-            <ThemedText
-              type="smallBold"
-              style={styles.buttonTextoSecundario}
-              themeColor="primarySecondary"
+        </Aparecer>
+
+        <Aparecer retraso={300} conLayout>
+          <View style={styles.divisor} />
+
+          <View style={styles.borradoresSection}>
+            <View style={styles.sectionHeaderRow}>
+              <Ionicons name="document-text-outline" size={20} color="#035AA6" />
+              <ThemedText
+                type="smallBold"
+                style={styles.sectionTitle}
+                themeColor="primaryDark"
+              >
+                Borradores y registros
+              </ThemedText>
+            </View>
+            <Pressable
+              style={styles.buttonSecundario}
+              onPress={() => router.push("/borradores")}
             >
-              Consultar borradores pendientes
-            </ThemedText>
-          </Pressable>
-        </View>
+              <ThemedText
+                type="smallBold"
+                style={styles.buttonTextoSecundario}
+                themeColor="primarySecondary"
+              >
+                Consultar borradores pendientes
+              </ThemedText>
+            </Pressable>
+          </View>
+        </Aparecer>
       </View>
     </ScrollView>
   );

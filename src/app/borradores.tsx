@@ -10,6 +10,10 @@ import { obtenerLecturasPorEstado, eliminarLectura, type Lectura } from '@/datab
 import { useConnectionStatus } from '@/hooks/use-connection';
 import { sincronizarPendientes } from '@/services/sync.service';
 
+import Animated, { FadeIn, FadeInRight, FadeOutLeft, FadeOutRight, LinearTransition } from 'react-native-reanimated';
+import { EstadoConexion } from '@/components/animados/estado-conexion';
+import { PressableAnimado } from '@/components/animados/pressable-animado';
+
 export default function BorradoresScreen() {
   const router = useRouter();
   const [borradores, setBorradores] = useState<Lectura[]>([]);
@@ -98,18 +102,12 @@ export default function BorradoresScreen() {
           </View>
         </View>
         <View style={styles.statusRowContainer}>
-          <View style={styles.statusRow}>
-            <ThemedText type="small" style={styles.statusText} themeColor="text">
-              {isConnected === false ? '● Sin conexión' : '● Conectado'}
-            </ThemedText>
-            {pendingCount > 0 && (
-              <ThemedText type="small" style={styles.statusText} themeColor="text">
-                | Pendientes: {pendingCount}
-              </ThemedText>
-            )}
-          </View>
+          <EstadoConexion isConnected={isConnected} pendingCount={pendingCount}/>
+                    
           {isConnected !== false && pendingCount > 0 && (
-            <Pressable
+            <PressableAnimado
+              entering={FadeInRight.springify().damping(18)}
+              exiting={FadeOutRight}
               style={styles.syncButton}
               onPress={() => {
                 sincronizarPendientes()
@@ -119,7 +117,7 @@ export default function BorradoresScreen() {
               <ThemedText type="smallBold" style={styles.syncButtonText} themeColor="text">
                 Sincronizar ahora
               </ThemedText>
-            </Pressable>
+            </PressableAnimado>
           )}
         </View>
       </View>
@@ -133,7 +131,10 @@ export default function BorradoresScreen() {
         </View>
 
         {borradores.length === 0 ? (
-          <View style={styles.emptyContainer}>
+          <Animated.View 
+            entering={FadeIn.delay(250)}
+            style={styles.emptyContainer}
+          >
             <Ionicons name="checkmark-circle-outline" size={48} color="#035AA6" style={{ marginBottom: 8 }} />
             <ThemedText type="smallBold" style={styles.emptyTitle} themeColor="text">
               No hay borradores pendientes
@@ -141,10 +142,17 @@ export default function BorradoresScreen() {
             <ThemedText type="small" style={styles.emptyText} themeColor="textSecondary">
               No existen registros incompletos para continuar.
             </ThemedText>
-          </View>
+          </Animated.View>
         ) : (
-          borradores.map((b) => (
-            <View key={b.id_local} style={styles.item}>
+          borradores.map((b, i) => (
+            <Animated.View 
+              key={b.id_local}
+              entering={FadeInRight.delay(Math.min(i, 6) * 90).springify().damping(18)}
+              exiting={FadeOutLeft.duration(250)}
+              layout={LinearTransition}
+              style={styles.item}
+
+            >
               <View style={styles.itemInfo}>
                 <View style={styles.codeRow}>
                   <Ionicons name="barcode-outline" size={16} color="#035AA6" />
@@ -171,7 +179,7 @@ export default function BorradoresScreen() {
                   </ThemedText>
                 </Pressable>
               </View>
-            </View>
+            </Animated.View>
           ))
         )}
 

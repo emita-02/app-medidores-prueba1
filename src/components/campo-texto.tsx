@@ -8,6 +8,9 @@ import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'rea
 import { ThemedText } from '@/components/themed-text';
 import { MedidoresColors, Spacing } from '@/constants/theme';
 
+import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
+
+
 type Props = TextInputProps & {
   etiqueta: string;
   error?: string | null;
@@ -54,9 +57,11 @@ export function CampoTexto({ etiqueta, error, esClave = false, icono, pie, style
         )}
       </View>
       {error ? (
-        <ThemedText type="small" style={styles.error}>
-          {error}
-        </ThemedText>
+        <Animated.View key={error} entering={FadeInDown.springify().damping(15)} exiting={FadeOutUp.duration(150)}>
+          <ThemedText type="small" style={styles.error}>
+            {error}
+          </ThemedText>
+        </Animated.View>
       ) : null}
       {pie}
     </View>

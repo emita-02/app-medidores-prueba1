@@ -9,6 +9,7 @@ import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, View } from 'r
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 type Props = { titulo: string; bajada?: string; conVolver?: boolean; children: ReactNode };
 
@@ -35,7 +36,7 @@ export function PantallaHoja({ titulo, bajada, conVolver = false, children }: Pr
           </ThemedText>
         </View>
 
-        <View style={styles.cardContainer}>
+        <Animated.View entering={FadeInDown.delay(100).springify().damping(18)} style={styles.cardContainer}>
           <ThemedText type="title" style={styles.titulo} themeColor="primaryDark">
             {titulo}
           </ThemedText>
@@ -45,7 +46,7 @@ export function PantallaHoja({ titulo, bajada, conVolver = false, children }: Pr
             </ThemedText>
           ) : null}
           {children}
-        </View>
+        </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
