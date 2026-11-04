@@ -3,13 +3,12 @@ si es una contraseña, el boton para mostrarla u ocultarla */
 
 import { Ionicons } from '@expo/vector-icons';
 import { useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
-
-import { ThemedText } from '@/components/themed-text';
-import { MedidoresColors, Spacing } from '@/constants/theme';
-
+import { Pressable, TextInput, View, type TextInputProps } from 'react-native';
 import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
 
+import { ThemedText } from '@/components/themed-text';
+import { MedidoresColors } from '@/constants/theme';
+import { cn } from '@/lib/cn';
 
 type Props = TextInputProps & {
   etiqueta: string;
@@ -19,22 +18,29 @@ type Props = TextInputProps & {
   pie?: ReactNode;
 };
 
-export function CampoTexto({ etiqueta, error, esClave = false, icono, pie, style, ...props }: Props) {
+export function CampoTexto({ etiqueta, error, esClave = false, icono, pie, className, style, ...props }: Props) {
   const [claveVisible, setClaveVisible] = useState(false);
   const iconoFinal =
     icono ??
     (esClave ? 'lock-closed-outline' : props.keyboardType === 'email-address' ? 'mail-outline' : 'person-outline');
 
   return (
-    <View style={styles.formGroup}>
-      <ThemedText type="smallBold" style={styles.label} themeColor="primaryDark">
+    <View className="mb-6">
+      <ThemedText type="smallBold" themeColor="primaryDark" className="mb-0.5 text-[13px]">
         {etiqueta}
       </ThemedText>
-      <View style={[styles.inputContainer, error ? styles.inputError : null]}>
-        <Ionicons name={iconoFinal} size={20} color={MedidoresColors.primary} style={styles.inputIcon} />
+      <View
+        className={cn(
+          'min-h-[52px] flex-row items-center rounded-xl border bg-campo px-4',
+          error ? 'border-error' : 'border-borde',
+        )}>
+        <View className="mr-2">
+          <Ionicons name={iconoFinal} size={20} color={MedidoresColors.primary} />
+        </View>
         <TextInput
           {...props}
-          style={[styles.input, style]}
+          className={cn('flex-1 py-0 text-[16px] text-tinta', className)}
+          style={style}
           placeholderTextColor="#999"
           secureTextEntry={esClave && !claveVisible}
           autoCapitalize={props.autoCapitalize ?? 'none'}
@@ -58,7 +64,7 @@ export function CampoTexto({ etiqueta, error, esClave = false, icono, pie, style
       </View>
       {error ? (
         <Animated.View key={error} entering={FadeInDown.springify().damping(15)} exiting={FadeOutUp.duration(150)}>
-          <ThemedText type="small" style={styles.error}>
+          <ThemedText type="small" className="mt-1 text-[13px] font-semibold text-error">
             {error}
           </ThemedText>
         </Animated.View>
@@ -67,23 +73,3 @@ export function CampoTexto({ etiqueta, error, esClave = false, icono, pie, style
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  formGroup: { marginBottom: Spacing.four },
-  label: { fontSize: 13, fontWeight: '700', marginBottom: Spacing.half },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    minHeight: 52,
-    paddingHorizontal: Spacing.three,
-  },
-  inputError: { borderColor: MedidoresColors.error },
-  inputIcon: { marginRight: Spacing.two },
-  input: { flex: 1, fontSize: 16, color: '#1E293B', paddingVertical: 0 },
-  error: { color: MedidoresColors.error, fontSize: 13, fontWeight: '600', marginTop: Spacing.one },
-});
-

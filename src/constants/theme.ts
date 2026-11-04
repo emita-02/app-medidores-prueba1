@@ -13,6 +13,7 @@ export const MedidoresColors = {
   primaryDark: '#175073',
   error: '#D93030',
   backgroundLight: '#F2F2F2',
+  exito: '#22704F',
 } as const;
 
 export const Colors = {

@@ -1,7 +1,9 @@
-import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
+import { ActivityIndicator, Pressable } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { MedidoresColors, Spacing } from '@/constants/theme';
+import { SOMBRA_BOTON } from '@/constants/sombras';
+import { MedidoresColors } from '@/constants/theme';
+import { cn } from '@/lib/cn';
 
 type Props = {
   texto: string;
@@ -17,7 +19,7 @@ export function Boton({ texto, onPress, variante = 'primario', cargando = false,
   if (variante === 'enlace') {
     return (
       <Pressable onPress={onPress} disabled={inactivo} hitSlop={8} accessibilityRole="link">
-        <ThemedText type="smallBold" style={[styles.enlace, inactivo && { opacity: 0.5 }]}>
+        <ThemedText type="smallBold" className={cn('text-primary underline', inactivo && 'opacity-50')}>
           {texto}
         </ThemedText>
       </Pressable>
@@ -31,41 +33,19 @@ export function Boton({ texto, onPress, variante = 'primario', cargando = false,
       disabled={inactivo}
       accessibilityRole="button"
       accessibilityState={{ disabled: inactivo, busy: cargando }}
-      style={[
-        styles.boton,
-        primario ? styles.primario : styles.secundario,
-        inactivo && (primario ? styles.primarioInactivo : { opacity: 0.6 }),
-      ]}>
+      className={cn(
+        'mt-2 min-h-[52px] items-center justify-center rounded-xl py-4',
+        primario ? (inactivo ? 'bg-deshabilitado' : 'bg-primary') : 'border-[1.5px] border-primary bg-transparent',
+        !primario && inactivo && 'opacity-60',
+      )}
+      style={primario ? SOMBRA_BOTON : undefined}>
       {cargando ? (
         <ActivityIndicator color={primario ? '#FFFFFF' : MedidoresColors.primary} />
       ) : (
-        <ThemedText type="smallBold" style={[styles.texto, !primario && { color: MedidoresColors.primary }]}>
+        <ThemedText type="smallBold" className={cn('text-[16px] font-bold', primario ? 'text-white' : 'text-primary')}>
           {texto}
         </ThemedText>
       )}
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  boton: {
-    borderRadius: 12,
-    paddingVertical: Spacing.three,
-    minHeight: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: Spacing.two,
-  },
-  primario: {
-    backgroundColor: '#035AA6',
-    shadowColor: '#035AA6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  primarioInactivo: { backgroundColor: '#9CC3E6' },
-  secundario: { borderWidth: 1.5, borderColor: '#035AA6', backgroundColor: 'transparent' },
-  texto: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  enlace: { color: '#035AA6', textDecorationLine: 'underline' },
-});

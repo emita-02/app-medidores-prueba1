@@ -61,9 +61,9 @@ export function FormEditarNombre() {
             value={usuario?.email ?? ''}
             editable={false}
             keyboardType="email-address"
-            style={{ color: '#64748B' }}
+            className="text-apagado"
             pie={
-            <ThemedText type="small" themeColor="textSecondary" style={{ marginTop: 4, fontSize: 12 }}>
+            <ThemedText type="small" themeColor="textSecondary" className="mt-1 text-[12px]">
                 El correo no se puede cambiar desde aquí.
             </ThemedText>
             }

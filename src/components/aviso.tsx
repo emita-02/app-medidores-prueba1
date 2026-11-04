@@ -2,42 +2,31 @@
 El color y el ícono permiten distinguir el tipo sin leer el texto. */
 
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet } from 'react-native';
 import Animated, { FadeInDown, FadeOutUp, ZoomIn } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { MedidoresColors, Spacing } from '@/constants/theme';
+import { MedidoresColors } from '@/constants/theme';
+import { cn } from '@/lib/cn';
 
 export function Aviso({ tipo, mensaje }: { tipo: 'error' | 'exito'; mensaje: string }) {
   const esError = tipo === 'error';
-  const color = esError ? MedidoresColors.error : '#22704F';
+  const color = esError ? MedidoresColors.error : MedidoresColors.exito;
   return (
     <Animated.View
       key={`${tipo}-${mensaje}`}
       entering={FadeInDown.springify().damping(15)}
       exiting={FadeOutUp.duration(200)}
       accessibilityRole="alert"
-      style={[styles.caja, { backgroundColor: esError ? '#FEE2E2' : '#E3F3EA', borderColor: color }]}>
+      className={cn(
+        'mb-6 flex-row items-start gap-2 rounded-[10px] border px-4 py-2',
+        esError ? 'border-error bg-error-suave' : 'border-exito bg-exito-suave',
+      )}>
       <Animated.View entering={ZoomIn.delay(150).springify().damping(10)}>
         <Ionicons name={esError ? 'alert-circle-outline' : 'checkmark-circle-outline'} size={18} color={color} />
       </Animated.View>
-      <ThemedText type="small" style={[styles.texto, { color }]}>
+      <ThemedText type="small" className={cn('flex-1 text-[13px] font-semibold', esError ? 'text-error' : 'text-exito')}>
         {mensaje}
       </ThemedText>
     </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({
-  caja: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.two,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    marginBottom: Spacing.four,
-  },
-  texto: { flex: 1, fontSize: 13, fontWeight: '600' },
-});

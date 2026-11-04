@@ -5,43 +5,46 @@ de su logica y no tenga que repetir el manejo del teclado ni de las zonas segura
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Pressable, ScrollView, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { SOMBRA_TARJETA } from '@/constants/sombras';
 
 type Props = { titulo: string; bajada?: string; conVolver?: boolean; children: ReactNode };
 
 export function PantallaHoja({ titulo, bajada, conVolver = false, children }: Props) {
   return (
-    <KeyboardAvoidingView style={styles.raiz} behavior="padding">
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
+    <KeyboardAvoidingView className="flex-1 bg-canvas" behavior="padding">
+      <ScrollView className="grow pb-16" keyboardShouldPersistTaps="handled">
+        <View className="items-center bg-primary px-8 py-6">
           {conVolver && (
             <Pressable
               onPress={() => router.back()}
               accessibilityRole="button"
               accessibilityLabel="Volver"
               hitSlop={12}
-              style={styles.volver}>
+              className="absolute left-4 top-6 p-2">
               <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
             </Pressable>
           )}
-          <ThemedText type="title" style={styles.headerCompanyTitle} themeColor="text">
+          <ThemedText type="title" className="text-[24px] font-black tracking-[1px] text-white">
             EPMAPS
           </ThemedText>
-          <ThemedText type="smallBold" style={styles.headerCompanySubtitle} themeColor="textSecondary">
+          <ThemedText type="smallBold" className="mt-0.5 text-[12px] font-bold tracking-[2px] text-canvas">
             AGUA DE QUITO
           </ThemedText>
         </View>
 
-        <Animated.View entering={FadeInDown.delay(100).springify().damping(18)} style={styles.cardContainer}>
-          <ThemedText type="title" style={styles.titulo} themeColor="primaryDark">
+        <Animated.View
+          entering={FadeInDown.delay(100).springify().damping(18)}
+          className="mx-6 mt-6 rounded-[20px] bg-white p-8"
+          style={SOMBRA_TARJETA}>
+          <ThemedText type="title" themeColor="primaryDark" className="text-[22px] font-bold">
             {titulo}
           </ThemedText>
           {bajada ? (
-            <ThemedText type="small" style={styles.bajada} themeColor="textSecondary">
+            <ThemedText type="small" themeColor="textSecondary" className="mb-6 mt-1 text-[13px]">
               {bajada}
             </ThemedText>
           ) : null}
@@ -51,37 +54,3 @@ export function PantallaHoja({ titulo, bajada, conVolver = false, children }: Pr
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  raiz: { flex: 1, backgroundColor: '#F2F2F2' },
-  container: { flexGrow: 1, paddingBottom: Spacing.six },
-  header: {
-    paddingVertical: Spacing.four,
-    paddingHorizontal: Spacing.five,
-    alignItems: 'center',
-    backgroundColor: '#035AA6',
-  },
-  headerCompanyTitle: { fontSize: 24, fontWeight: '900', color: '#FFFFFF', letterSpacing: 1 },
-  headerCompanySubtitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#F2F2F2',
-    letterSpacing: 2,
-    marginTop: 2,
-  },
-  volver: { position: 'absolute', left: Spacing.three, top: Spacing.four, padding: Spacing.two },
-  cardContainer: {
-    marginHorizontal: Spacing.four,
-    marginTop: Spacing.four,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: Spacing.five,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  titulo: { fontSize: 22, fontWeight: 'bold' },
-  bajada: { fontSize: 13, marginTop: Spacing.one, marginBottom: Spacing.four },
-});

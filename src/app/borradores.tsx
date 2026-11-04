@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { SOMBRA_TARJETA } from '@/constants/sombras';
 import { obtenerLecturasPorEstado, eliminarLectura, type Lectura } from '@/database/repository';
 import { useConnectionStatus } from '@/hooks/use-connection';
 import { sincronizarPendientes } from '@/services/sync.service';
@@ -75,8 +75,8 @@ export default function BorradoresScreen() {
 
   if (cargando) {
     return (
-      <ThemedView type="background" style={styles.container}>
-        <ThemedText type="default" themeColor="text" style={styles.loadingText}>
+      <ThemedView type="backgroundLight" className="flex-1">
+        <ThemedText type="default" className="mt-16 text-center text-[16px] text-apagado">
           Cargando borradores...
         </ThemedText>
       </ThemedView>
@@ -85,36 +85,36 @@ export default function BorradoresScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={styles.contentContainer}
-      style={styles.scrollView}
+      contentContainerClassName="bg-canvas pb-16"
+      className="grow bg-canvas"
       keyboardShouldPersistTaps="handled">
-      
+
       {/* Cabecera institucional moderna */}
-      <View style={styles.header}>
-        <View style={styles.headerTopRow}>
+      <View className="bg-primary px-8 pb-6 pt-[50px]">
+        <View className="flex-row items-center justify-between">
           <View>
-            <ThemedText type="title" style={styles.headerTitle} themeColor="text">
+            <ThemedText type="title" className="text-[26px] font-black tracking-[1px] text-white" themeColor="text">
               EPMAPS
             </ThemedText>
-            <ThemedText type="smallBold" style={styles.headerSubtitle} themeColor="textSecondary">
+            <ThemedText type="smallBold" className="mt-0.5 text-[12px] tracking-[2px] text-canvas" themeColor="textSecondary">
               Borradores pendientes
             </ThemedText>
           </View>
         </View>
-        <View style={styles.statusRowContainer}>
+        <View className="mt-4 flex-row items-center justify-between">
           <EstadoConexion isConnected={isConnected} pendingCount={pendingCount}/>
-                    
+
           {isConnected !== false && pendingCount > 0 && (
             <PressableAnimado
               entering={FadeInRight.springify().damping(18)}
               exiting={FadeOutRight}
-              style={styles.syncButton}
+              className="rounded-lg bg-white/25 px-4 py-1.5"
               onPress={() => {
                 sincronizarPendientes()
                   .then(() => actualizarContador())
                   .catch(() => actualizarContador());
               }}>
-              <ThemedText type="smallBold" style={styles.syncButtonText} themeColor="text">
+              <ThemedText type="smallBold" className="text-[12px] text-white" themeColor="text">
                 Sincronizar ahora
               </ThemedText>
             </PressableAnimado>
@@ -122,59 +122,61 @@ export default function BorradoresScreen() {
         </View>
       </View>
 
-      <View style={styles.cardContainer}>
-        <View style={styles.sectionHeaderRow}>
+      <View className="mx-6 -mt-4 gap-4 rounded-[20px] bg-white p-6" style={SOMBRA_TARJETA}>
+        <View className="mb-1 flex-row items-center gap-2">
           <Ionicons name="document-text-outline" size={20} color="#035AA6" />
-          <ThemedText type="smallBold" style={styles.sectionTitle} themeColor="primaryDark">
+          <ThemedText type="smallBold" className="text-[16px]" themeColor="primaryDark">
             Registros incompletos
           </ThemedText>
         </View>
 
         {borradores.length === 0 ? (
-          <Animated.View 
+          <Animated.View
             entering={FadeIn.delay(250)}
-            style={styles.emptyContainer}
+            className="items-center py-8"
           >
-            <Ionicons name="checkmark-circle-outline" size={48} color="#035AA6" style={{ marginBottom: 8 }} />
-            <ThemedText type="smallBold" style={styles.emptyTitle} themeColor="text">
+            <View className="mb-2">
+              <Ionicons name="checkmark-circle-outline" size={48} color="#035AA6" />
+            </View>
+            <ThemedText type="smallBold" className="mb-1 text-[16px] text-[#0F172A]" themeColor="text">
               No hay borradores pendientes
             </ThemedText>
-            <ThemedText type="small" style={styles.emptyText} themeColor="textSecondary">
+            <ThemedText type="small" className="text-center text-[13px] text-apagado" themeColor="textSecondary">
               No existen registros incompletos para continuar.
             </ThemedText>
           </Animated.View>
         ) : (
           borradores.map((b, i) => (
-            <Animated.View 
+            <Animated.View
               key={b.id_local}
               entering={FadeInRight.delay(Math.min(i, 6) * 90).springify().damping(18)}
               exiting={FadeOutLeft.duration(250)}
               layout={LinearTransition}
-              style={styles.item}
+              className="mb-2 flex-row items-center justify-between rounded-[14px] border border-borde bg-[#F8FAFC] p-4"
 
             >
-              <View style={styles.itemInfo}>
-                <View style={styles.codeRow}>
+              <View className="flex-1 gap-1 pr-2">
+                <View className="flex-row items-center gap-1.5">
                   <Ionicons name="barcode-outline" size={16} color="#035AA6" />
-                  <ThemedText type="smallBold" style={styles.itemCode} themeColor="primaryDark">
+                  <ThemedText type="smallBold" className="text-[15px] text-primary" themeColor="primaryDark">
                     {b.codigo_medidor}
                   </ThemedText>
                 </View>
-                <ThemedText type="small" style={styles.itemMeta} themeColor="textSecondary">
-                  Periodo: {b.mes}/{b.anio} &bull; Estado: <ThemedText style={{ fontWeight: '600', color: '#1E293B' }}>{b.estado_medidor}</ThemedText>
+                <ThemedText type="small" className="text-[12px] text-apagado" themeColor="textSecondary">
+                  Periodo: {b.mes}/{b.anio} &bull; Estado: <ThemedText className="font-semibold text-tinta">{b.estado_medidor}</ThemedText>
                 </ThemedText>
-                <ThemedText type="code" style={styles.itemDate} themeColor="textSecondary">
+                <ThemedText type="code" className="mt-0.5 text-[11px] text-[#94A3B8]" themeColor="textSecondary">
                   Modificado: {formatearFecha(b.fecha_creacion)}
                 </ThemedText>
               </View>
-              <View style={styles.itemActions}>
-                <Pressable style={styles.btnContinuar} onPress={() => handleContinuar(b.id_local, b.codigo_medidor)}>
-                  <ThemedText type="smallBold" style={styles.btnTexto} themeColor="text">
+              <View className="w-[100px] gap-2">
+                <Pressable className="items-center rounded-[10px] border border-primary bg-[#E0F2FE] px-3 py-2" onPress={() => handleContinuar(b.id_local, b.codigo_medidor)}>
+                  <ThemedText type="smallBold" className="text-[13px] text-primary" themeColor="text">
                     Continuar
                   </ThemedText>
                 </Pressable>
-                <Pressable style={styles.btnDescartar} onPress={() => handleDescartar(b.id_local)}>
-                  <ThemedText type="smallBold" style={styles.btnTextoDescartar} themeColor="error">
+                <Pressable className="items-center rounded-[10px] border border-error bg-error-suave px-3 py-2" onPress={() => handleDescartar(b.id_local)}>
+                  <ThemedText type="smallBold" className="text-[13px] text-error" themeColor="error">
                     Descartar
                   </ThemedText>
                 </Pressable>
@@ -183,8 +185,8 @@ export default function BorradoresScreen() {
           ))
         )}
 
-        <Pressable style={styles.buttonSecundario} onPress={() => router.back()}>
-          <ThemedText type="smallBold" style={styles.buttonTextoSecundario} themeColor="primarySecondary">
+        <Pressable className="mt-2 min-h-[52px] items-center justify-center rounded-xl border-[1.5px] border-primary bg-white py-4" onPress={() => router.back()}>
+          <ThemedText type="smallBold" className="text-[15px] text-primary" themeColor="primarySecondary">
             Volver al inicio
           </ThemedText>
         </Pressable>
@@ -192,200 +194,3 @@ export default function BorradoresScreen() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F2F2F2', 
-  },
-  scrollView: {
-    flexGrow: 1,
-    backgroundColor: '#F2F2F2', 
-  },
-  contentContainer: {
-    paddingBottom: Spacing.six,
-    backgroundColor: '#F2F2F2',
-  },
-  header: {
-    paddingTop: 50, 
-    paddingBottom: Spacing.four,
-    paddingHorizontal: Spacing.five,
-    backgroundColor: '#035AA6',
-  },
-  headerTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  backIconButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 10,
-    borderRadius: 12,
-  },
-  cardContainer: {
-    marginHorizontal: Spacing.four,
-    marginTop: -Spacing.three,
-    backgroundColor: '#FFFFFF', 
-    borderRadius: 20,
-    padding: Spacing.four,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-    gap: Spacing.three,
-  },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 1,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#F2F2F2',
-    letterSpacing: 2,
-    marginTop: 2,
-  },
-  statusRowContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: Spacing.three,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
-  statusText: {
-    fontSize: 12,
-    color: '#ffffff',
-    fontWeight: '600',
-  },
-  syncButton: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  syncButtonText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    marginBottom: Spacing.one,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  item: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.three,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 14,
-    marginBottom: Spacing.two,
-  },
-  itemInfo: {
-    flex: 1,
-    gap: 4,
-    paddingRight: Spacing.two,
-  },
-  codeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  itemCode: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#035AA6',
-  },
-  itemMeta: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  itemDate: {
-    fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 2,
-  },
-  itemActions: {
-    gap: Spacing.two,
-    width: 100,
-  },
-  btnContinuar: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: '#035AA6',
-    borderRadius: 10,
-    backgroundColor: '#E0F2FE',
-    alignItems: 'center',
-  },
-  btnTexto: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#035AA6',
-  },
-  btnDescartar: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: '#D93030',
-    borderRadius: 10,
-    backgroundColor: '#FEE2E2',
-    alignItems: 'center',
-  },
-  btnTextoDescartar: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#D93030',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: Spacing.five,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 4,
-    color: '#0F172A',
-  },
-  emptyText: {
-    fontSize: 13,
-    color: '#64748B',
-    textAlign: 'center',
-  },
-  buttonSecundario: {
-    borderWidth: 1.5,
-    borderColor: '#035AA6',
-    borderRadius: 12,
-    paddingVertical: Spacing.three,
-    alignItems: 'center',
-    marginTop: Spacing.two,
-    minHeight: 52,
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  buttonTextoSecundario: {
-    color: '#035AA6',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  loadingText: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: Spacing.six,
-    color: '#64748B',
-  },
-});

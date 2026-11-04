@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import Animated, {
   cancelAnimation,
   FadeInRight,
@@ -13,7 +13,6 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
 
 type Props = { isConnected: boolean | null; pendingCount: number };
 
@@ -51,12 +50,12 @@ export function EstadoConexion({ isConnected, pendingCount }: Props) {
   const estiloContador = useAnimatedStyle(() => ({ transform: [{ scale: escalaContador.get() }] }));
 
   return (
-    <View style={styles.fila}>
-      <View style={styles.grupo}>
+    <View className="flex-row gap-2">
+      <View className="flex-row gap-1">
         <Animated.View style={estiloPunto}>
-          <ThemedText type="small" style={styles.texto} themeColor="text">●</ThemedText>
+          <ThemedText type="small" className="text-[12px] font-semibold text-white">●</ThemedText>
         </Animated.View>
-        <ThemedText type="small" style={styles.texto} themeColor="text">
+        <ThemedText type="small" className="text-[12px] font-semibold text-white">
           {conectado ? 'Conectado' : 'Sin conexión'}
         </ThemedText>
       </View>
@@ -64,7 +63,7 @@ export function EstadoConexion({ isConnected, pendingCount }: Props) {
       {pendingCount > 0 && (
         <Animated.View entering={FadeInRight} exiting={FadeOutRight}>
           <Animated.View style={estiloContador}>
-            <ThemedText type="small" style={styles.texto} themeColor="text">
+            <ThemedText type="small" className="text-[12px] font-semibold text-white">
               | Pendientes: {pendingCount}
             </ThemedText>
           </Animated.View>
@@ -73,9 +72,3 @@ export function EstadoConexion({ isConnected, pendingCount }: Props) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  fila: { flexDirection: 'row', gap: Spacing.two },
-  grupo: { flexDirection: 'row', gap: 4 },
-  texto: { fontSize: 12, color: '#ffffff', fontWeight: '600' },
-});

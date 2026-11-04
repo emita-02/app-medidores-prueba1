@@ -5,6 +5,8 @@ import { useColorScheme } from 'react-native';
 
 import { ProveedorSesion, useSesion } from '@/context/sesion';
 
+import '@/global.css';
+
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {

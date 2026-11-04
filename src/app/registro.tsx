@@ -8,7 +8,7 @@
 
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Aviso } from '@/components/aviso';
 import { Boton } from '@/components/boton';
@@ -23,7 +23,6 @@ validarConfirmacion,
 validarCorreo,
 validarNombre,
 } from '@/lib/validaciones';
-import { Spacing } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { IndicadorFortaleza } from '@/components/indicador-fortaleza';
 
@@ -116,23 +115,13 @@ export default function PantallaRegistro() {
 
         <Boton texto="Crear cuenta" onPress={manejarRegistro} cargando={enviando} />
 
-        <View style={styles.pie}>
+        <View className="mt-4 flex-row items-center justify-center gap-2">
             <ThemedText type="small" themeColor="textSecondary">¿Ya tienes cuenta?</ThemedText>
             <Boton variante="enlace" texto="Inicia sesión" onPress={() => router.back()} />
         </View>
         </PantallaHoja>
     );
 }
-
-const styles = StyleSheet.create({
-  pie: { 
-        flexDirection: 'row', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        gap: Spacing.two, 
-        marginTop: Spacing.three
-    },
-});
 
 
 

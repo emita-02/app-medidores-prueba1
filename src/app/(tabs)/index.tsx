@@ -6,14 +6,15 @@ import {
   Alert,
   Pressable,
   ScrollView,
-  StyleSheet,
   TextInput,
   View,
 } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { Colors, Spacing } from "@/constants/theme";
+import { SOMBRA_BOTON, SOMBRA_CARD_RESULTADO, SOMBRA_TARJETA } from "@/constants/sombras";
+import { Colors } from "@/constants/theme";
+import { cn } from "@/lib/cn";
 import { useSesion } from "@/context/sesion";
 import {
   eliminarLectura,
@@ -169,11 +170,11 @@ export default function HomeScreen() {
     etiqueta: string,
     valor: string | number | null | undefined,
   ) => (
-    <View style={styles.fila} key={etiqueta}>
-      <ThemedText type="smallBold" style={styles.etiqueta} themeColor="text">
+    <View className="flex-row items-center justify-between border-b-[0.5px] border-b-[#F1F5F9] py-1.5" key={etiqueta}>
+      <ThemedText type="smallBold" className="flex-1 pr-2 text-[13px] text-apagado" themeColor="text">
         {etiqueta}
       </ThemedText>
-      <ThemedText type="code" style={styles.valor} themeColor="text">
+      <ThemedText type="code" className="shrink text-right text-[13px] font-semibold text-[#0F172A]" themeColor="text">
         {valor == null || valor === "" ? "—" : String(valor)}
       </ThemedText>
     </View>
@@ -184,17 +185,17 @@ export default function HomeScreen() {
 
     if (consulta.estado === "no_encontrado") {
       return (
-        <ThemedView style={styles.cardResultado}>
+        <ThemedView className="mt-4 rounded-[14px] border border-borde bg-white p-6" style={SOMBRA_CARD_RESULTADO}>
           <ThemedText
             type="smallBold"
-            style={styles.tituloResultado}
+            className="mb-0.5 text-[16px]"
             themeColor="text"
           >
             Medidor no encontrado
           </ThemedText>
           <ThemedText
             type="small"
-            style={styles.mensajeResultado}
+            className="mb-4 text-[13px] leading-[18px]"
             themeColor="textSecondary"
           >
             No existe un medidor registrado con el código consultado en MockAPI.
@@ -205,17 +206,17 @@ export default function HomeScreen() {
 
     if (consulta.estado === "error") {
       return (
-        <ThemedView style={[styles.cardResultado, styles.cardError]}>
+        <ThemedView className="mt-4 rounded-[14px] border border-error bg-white p-6" style={SOMBRA_CARD_RESULTADO}>
           <ThemedText
             type="smallBold"
-            style={styles.tituloResultado}
+            className="mb-0.5 text-[16px]"
             themeColor="error"
           >
             Error al consultar
           </ThemedText>
           <ThemedText
             type="small"
-            style={styles.mensajeResultado}
+            className="mb-4 text-[13px] leading-[18px]"
             themeColor="text"
           >
             {consulta.mensaje}
@@ -227,17 +228,17 @@ export default function HomeScreen() {
     if (consulta.estado === "sin_conexion") {
       if (!consulta.medidor) {
         return (
-          <ThemedView style={styles.cardResultado}>
+          <ThemedView className="mt-4 rounded-[14px] border border-borde bg-white p-6" style={SOMBRA_CARD_RESULTADO}>
             <ThemedText
               type="smallBold"
-              style={styles.tituloResultado}
+              className="mb-0.5 text-[16px]"
               themeColor="text"
             >
               Sin conexión y sin datos guardados
             </ThemedText>
             <ThemedText
               type="small"
-              style={styles.mensajeResultado}
+              className="mb-4 text-[13px] leading-[18px]"
               themeColor="textSecondary"
             >
               No hay conexión y no existe información previa de este medidor.
@@ -249,11 +250,11 @@ export default function HomeScreen() {
       const medidor = consulta.medidor;
       const vencida = !consulta.vigente;
       return (
-        <ThemedView style={[styles.cardResultado, styles.cardAlmacenado]}>
-          <ThemedView style={styles.badgeAlmacenado}>
+        <ThemedView className="mt-4 rounded-[14px] border border-[#D97706] bg-white p-6" style={SOMBRA_CARD_RESULTADO}>
+          <ThemedView className="mb-2 self-start rounded-md bg-[#FEF3C7] px-2 py-1">
             <ThemedText
               type="smallBold"
-              style={styles.textoBadge}
+              className="text-[11px] uppercase text-primary"
               themeColor="text"
             >
               {vencida ? "CACHÉ VENCIDA" : "DATOS ALMACENADOS"}
@@ -261,21 +262,21 @@ export default function HomeScreen() {
           </ThemedView>
           <ThemedText
             type="smallBold"
-            style={styles.tituloResultado}
+            className="mb-0.5 text-[16px]"
             themeColor="text"
           >
             Medidor (consulta offline)
           </ThemedText>
           <ThemedText
             type="small"
-            style={styles.mensajeResultado}
+            className="mb-4 text-[13px] leading-[18px]"
             themeColor="textSecondary"
           >
             Sin conexión. Mostrando datos guardados en cache, consultados el{" "}
             {formatearFecha(medidor.fecha_consulta)}.
             {vencida ? " La caché superó un día de vigencia." : ""}
           </ThemedText>
-          <View style={styles.datos}>
+          <View className="mb-4 gap-2">
             {filaDato("Código", medidor.codigo)}
             {filaDato("Dirección", medidor.direccion)}
             {filaDato("Sector", medidor.sector)}
@@ -293,7 +294,8 @@ export default function HomeScreen() {
           </View>
 
           <Pressable
-            style={styles.button}
+            className="mt-4 min-h-[52px] items-center justify-center rounded-xl bg-primary py-4"
+            style={SOMBRA_BOTON}
             onPress={() =>
               router.push(
                 `/lectura?codigo=${encodeURIComponent(medidor.codigo)}`,
@@ -302,7 +304,7 @@ export default function HomeScreen() {
           >
             <ThemedText
               type="smallBold"
-              style={styles.buttonText}
+              className="text-[16px] text-white"
               themeColor="text"
             >
               Registrar lectura
@@ -319,11 +321,11 @@ export default function HomeScreen() {
         : "Consultado desde caché";
 
     return (
-      <ThemedView style={[styles.cardResultado, styles.cardDatos]}>
-        <ThemedView style={styles.badgeOnline}>
+      <ThemedView className="mt-4 rounded-[14px] border border-primary bg-white p-6" style={SOMBRA_CARD_RESULTADO}>
+        <ThemedView className="mb-2 self-start rounded-md bg-[#E0F2FE] px-2 py-1">
           <ThemedText
             type="smallBold"
-            style={styles.textoBadge}
+            className="text-[11px] uppercase text-primary"
             themeColor="text"
           >
             {consulta.vigente ? "CACHÉ VIGENTE" : "CACHÉ VENCIDA"}
@@ -331,20 +333,20 @@ export default function HomeScreen() {
         </ThemedView>
         <ThemedText
           type="smallBold"
-          style={styles.tituloResultado}
+          className="mb-0.5 text-[16px]"
           themeColor="text"
         >
           Medidor encontrado
         </ThemedText>
         <ThemedText
           type="small"
-          style={styles.mensajeResultado}
+          className="mb-4 text-[13px] leading-[18px]"
           themeColor="textSecondary"
         >
           {origenTexto}. Consulta realizada:{" "}
           {formatearFecha(medidor.fecha_consulta)}.
         </ThemedText>
-        <View style={styles.datos}>
+        <View className="mb-4 gap-2">
           {filaDato("Código", medidor.codigo)}
           {filaDato("Dirección", medidor.direccion)}
           {filaDato("Sector", medidor.sector)}
@@ -362,14 +364,15 @@ export default function HomeScreen() {
         </View>
 
         <Pressable
-          style={styles.button}
+          className="mt-4 min-h-[52px] items-center justify-center rounded-xl bg-primary py-4"
+          style={SOMBRA_BOTON}
           onPress={() =>
             router.push(`/lectura?codigo=${encodeURIComponent(medidor.codigo)}`)
           }
         >
           <ThemedText
             type="smallBold"
-            style={styles.buttonText}
+            className="text-[16px] text-white"
             themeColor="text"
           >
             Registrar lectura
@@ -381,40 +384,40 @@ export default function HomeScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={styles.contentContainer}
-      style={styles.scrollView}
+      contentContainerClassName="pb-16"
+      className="flex-1 bg-canvas"
       keyboardShouldPersistTaps="handled"
     >
       {/* Cabecera institucional moderna */}
       <Aparecer tipo="fade">
-        <View style={styles.header}>
-          <View style={styles.headerTopRow}>
+        <View className="bg-primary px-8 py-6">
+          <View className="flex-row items-center justify-between">
             <View>
               <ThemedText
                 type="title"
-                style={styles.headerTitle}
+                className="text-[26px] font-black tracking-[1px] text-white"
                 themeColor="text"
               >
                 EPMAPS
               </ThemedText>
               <ThemedText
                 type="smallBold"
-                style={styles.headerSubtitle}
+                className="mt-0.5 text-[12px] tracking-[2px] text-canvas"
                 themeColor="textSecondary"
               >
                 AGUA DE QUITO
               </ThemedText>
               <ThemedText
                 type="smallBold"
-                style={styles.headerSubtitle}
+                className="mt-0.5 text-[12px] tracking-[2px] text-canvas"
                 themeColor="textSecondary"
               >
                 Registro de lecturas de medidores
               </ThemedText>
             </View>
-            <View style={{ flexDirection: "row", gap: Spacing.two }}>
+            <View className="flex-row gap-2">
               <Pressable
-                style={styles.logoutIconButton}
+                className="rounded-xl bg-white/20 p-2.5"
                 onPress={handleLogout}
                 accessibilityLabel="Cerrar sesión"
               >
@@ -423,13 +426,13 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          <View style={styles.statusRowContainer}>
+          <View className="mt-4 flex-row items-center justify-between">
             <EstadoConexion isConnected={isConnected} pendingCount={pendingCount} />
             {isConnected !== false && pendingCount > 0 && (
               <PressableAnimado
                 entering={FadeInRight.springify().damping(18)}
                 exiting={FadeOutRight}
-                style={styles.syncButton}
+                className="rounded-lg bg-white/25 px-4 py-1.5"
                 onPress={() => {
                   sincronizarPendientes()
                     .then(() => actualizarContador())
@@ -438,7 +441,7 @@ export default function HomeScreen() {
               >
                 <ThemedText
                   type="smallBold"
-                  style={styles.syncButtonText}
+                  className="text-[12px] text-white"
                   themeColor="text"
                 >
                   Sincronizar ahora
@@ -450,18 +453,18 @@ export default function HomeScreen() {
       </Aparecer>
 
       {/* Tarjeta de bienvenida / Sesión de la operadora */}
-      <View style={styles.cardContainer}>
+      <View className="mx-6 -mt-4 rounded-[20px] bg-white p-6" style={SOMBRA_TARJETA}>
         <Aparecer retraso={100}>
-          <View style={styles.userCard}>
-            <View style={styles.userInfo}>
-              <View style={styles.avatarContainer}>
+          <View className="mb-6 rounded-[14px] border border-borde bg-[#F8FAFC] p-4">
+            <View className="flex-row items-center gap-4">
+              <View className="h-12 w-12 items-center justify-center rounded-full bg-[#E0F2FE]">
                 <Ionicons name="person" size={24} color="#035AA6" />
               </View>
               <View>
-                <ThemedText type="small" style={styles.welcomeLabel}>
+                <ThemedText type="small" className="text-[12px] text-apagado">
                   ¡Buen día,
                 </ThemedText>
-                <ThemedText type="smallBold" style={styles.userName}>
+                <ThemedText type="smallBold" className="text-[16px] font-bold text-[#0F172A]">
                   {nombre ?? usuario?.email}
                 </ThemedText>
               </View>
@@ -472,13 +475,13 @@ export default function HomeScreen() {
         {borradorPendiente ? (
           <ThemedView
             type="backgroundLight"
-            style={[styles.cardBorradorContainer]}
+            className="mb-6 rounded-[14px] border border-error bg-[#FEF2F2] p-6"
           >
-            <View style={styles.borradorHeaderRow}>
+            <View className="mb-1 flex-row items-center gap-1">
               <Ionicons name="alert-circle-outline" size={20} color="#D93030" />
               <ThemedText
                 type="smallBold"
-                style={styles.sectionTitleBorrador}
+                className="text-[15px] text-error"
                 themeColor="text"
               >
                 Borrador incompleto detectado
@@ -486,7 +489,7 @@ export default function HomeScreen() {
             </View>
             <ThemedText
               type="small"
-              style={styles.mensajeResultado}
+              className="mb-4 text-[13px] leading-[18px]"
               themeColor="textSecondary"
             >
               Hay un registro sin terminar para el medidor{" "}
@@ -494,26 +497,27 @@ export default function HomeScreen() {
               {borradorPendiente.anio}). Estado:{" "}
               {borradorPendiente.estado_medidor}.
             </ThemedText>
-            <View style={styles.borradorActions}>
+            <View className="gap-1">
               <Pressable
-                style={styles.button}
+                className="mt-4 min-h-[52px] items-center justify-center rounded-xl bg-primary py-4"
+                style={SOMBRA_BOTON}
                 onPress={handleContinuarBorrador}
               >
                 <ThemedText
                   type="smallBold"
-                  style={styles.buttonText}
+                  className="text-[16px] text-white"
                   themeColor="text"
                 >
                   Continuar registro
                 </ThemedText>
               </Pressable>
               <Pressable
-                style={styles.buttonSecundario}
+                className="mt-2 min-h-[52px] items-center justify-center rounded-xl border-[1.5px] border-primary bg-[#F8FAFC] py-4"
                 onPress={handleDescartarBorrador}
               >
                 <ThemedText
                   type="smallBold"
-                  style={styles.buttonTextoSecundario}
+                  className="text-[15px] text-primary"
                   themeColor="primarySecondary"
                 >
                   Descartar borrador
@@ -524,12 +528,12 @@ export default function HomeScreen() {
         ) : null}
 
         <Aparecer retraso={200} conLayout>
-          <View style={styles.consultaSection}>
-            <View style={styles.sectionHeaderRow}>
+          <View className="mt-2">
+            <View className="mb-4 flex-row items-center gap-2">
               <Ionicons name="search-outline" size={20} color="#035AA6" />
               <ThemedText
                 type="smallBold"
-                style={styles.sectionTitle}
+                className="text-[16px]"
                 themeColor="primaryDark"
               >
                 Consulta de medidor
@@ -538,20 +542,21 @@ export default function HomeScreen() {
 
             <ThemedText
               type="smallBold"
-              style={styles.label}
+              className="mb-0.5 text-[13px]"
               themeColor="primaryDark"
             >
               Código del medidor
             </ThemedText>
-            <View style={styles.inputContainer}>
-              <Ionicons
-                name="barcode-outline"
-                size={20}
-                color="#035AA6"
-                style={styles.inputIcon}
-              />
+            <View className="min-h-[52px] flex-row items-center rounded-xl border border-borde bg-campo px-4">
+              <View className="mr-2">
+                <Ionicons
+                  name="barcode-outline"
+                  size={20}
+                  color="#035AA6"
+                />
+              </View>
               <TextInput
-                style={styles.input}
+                className="flex-1 py-0 text-[16px] text-tinta"
                 value={codigo}
                 onChangeText={setCodigo}
                 placeholder="MED-000001"
@@ -569,8 +574,8 @@ export default function HomeScreen() {
                 entering={FadeInDown.springify().damping(15)} 
                 exiting={FadeOutUp.duration(200)}
               >
-                <ThemedView style={styles.errorBanner}>
-                  <ThemedText type="small" style={styles.errorText} themeColor="text">
+                <ThemedView className="mt-2 rounded-[10px] border border-error bg-error-suave px-4 py-2">
+                  <ThemedText type="small" className="text-[13px] font-semibold text-error" themeColor="text">
                     {error}
                   </ThemedText>
                 </ThemedView>
@@ -578,13 +583,17 @@ export default function HomeScreen() {
             )}
 
             <Pressable
-              style={[styles.button, consultando && styles.buttonDisabled]}
+              className={cn(
+                "mt-4 min-h-[52px] items-center justify-center rounded-xl bg-primary py-4",
+                consultando && "bg-deshabilitado",
+              )}
+              style={SOMBRA_BOTON}
               disabled={consultando}
               onPress={handleConsultar}
             >
               <ThemedText
                 type="smallBold"
-                style={styles.buttonText}
+                className="text-[16px] text-white"
                 themeColor="text"
               >
                 {consultando ? "Consultando..." : "Consultar medidor"}
@@ -592,14 +601,14 @@ export default function HomeScreen() {
             </Pressable>
 
             {consultando && (
-              <View style={styles.loadingContainer}>
+              <View className="my-2 items-center">
                 <ActivityIndicator size="small" color={Colors.light.primary} />
               </View>
             )}
 
             <ThemedText
               type="small"
-              style={styles.chip}
+              className="mt-2 text-[12px] italic"
               themeColor="textSecondary"
             >
               {chipTexto()}
@@ -614,26 +623,26 @@ export default function HomeScreen() {
         </Aparecer>
 
         <Aparecer retraso={300} conLayout>
-          <View style={styles.divisor} />
+          <View className="my-8 h-px bg-borde" />
 
-          <View style={styles.borradoresSection}>
-            <View style={styles.sectionHeaderRow}>
+          <View className="mt-2">
+            <View className="mb-4 flex-row items-center gap-2">
               <Ionicons name="document-text-outline" size={20} color="#035AA6" />
               <ThemedText
                 type="smallBold"
-                style={styles.sectionTitle}
+                className="text-[16px]"
                 themeColor="primaryDark"
               >
                 Borradores y registros
               </ThemedText>
             </View>
             <Pressable
-              style={styles.buttonSecundario}
+              className="mt-2 min-h-[52px] items-center justify-center rounded-xl border-[1.5px] border-primary bg-[#F8FAFC] py-4"
               onPress={() => router.push("/borradores")}
             >
               <ThemedText
                 type="smallBold"
-                style={styles.buttonTextoSecundario}
+                className="text-[15px] text-primary"
                 themeColor="primarySecondary"
               >
                 Consultar borradores pendientes
@@ -646,321 +655,3 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-    backgroundColor: "#F2F2F2",
-  },
-  contentContainer: {
-    paddingBottom: Spacing.six,
-  },
-  header: {
-    paddingVertical: Spacing.four,
-    paddingHorizontal: Spacing.five,
-    backgroundColor: "#035AA6",
-  },
-  headerTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: "900",
-    color: "#FFFFFF",
-    letterSpacing: 1,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#F2F2F2",
-    letterSpacing: 2,
-    marginTop: 2,
-  },
-  logoutIconButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    padding: 10,
-    borderRadius: 12,
-  },
-  statusRowContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: Spacing.three,
-  },
-  statusRow: {
-    flexDirection: "row",
-    gap: Spacing.two,
-  },
-  statusText: {
-    fontSize: 12,
-    color: "#ffffff",
-    fontWeight: "600",
-  },
-  syncButton: {
-    backgroundColor: "rgba(255,255,255,0.25)",
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  syncButtonText: {
-    color: "#ffffff",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  cardContainer: {
-    marginHorizontal: Spacing.four,
-    marginTop: -Spacing.three,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: Spacing.four,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  userCard: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 14,
-    padding: Spacing.three,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    marginBottom: Spacing.four,
-  },
-  userInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.three,
-  },
-  avatarContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#E0F2FE",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  welcomeLabel: {
-    fontSize: 12,
-    color: "#64748B",
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#0F172A",
-  },
-  empleadoCode: {
-    fontSize: 13,
-    color: "#035AA6",
-    fontWeight: "700",
-    marginTop: 2,
-  },
-  consultaSection: {
-    marginTop: Spacing.two,
-  },
-  borradoresSection: {
-    marginTop: Spacing.two,
-  },
-  sectionHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.two,
-    marginBottom: Spacing.three,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    justifyContent: "center",
-  },
-  sectionTitleBorrador: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#D93030",
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: "700",
-    marginBottom: Spacing.half,
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F9FAFB",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 12,
-    minHeight: 52,
-    paddingHorizontal: Spacing.three,
-  },
-  inputIcon: {
-    marginRight: Spacing.two,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: "#1E293B",
-    paddingVertical: 0,
-  },
-  errorBanner: {
-    backgroundColor: "#FEE2E2",
-    borderWidth: 1,
-    borderColor: "#D93030",
-    borderRadius: 10,
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    marginTop: Spacing.two,
-  },
-  errorText: {
-    color: "#D93030",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  button: {
-    backgroundColor: "#035AA6",
-    borderRadius: 12,
-    paddingVertical: Spacing.three,
-    alignItems: "center",
-    marginTop: Spacing.three,
-    minHeight: 52,
-    justifyContent: "center",
-    shadowColor: "#035AA6",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  buttonDisabled: {
-    backgroundColor: "#9CC3E6",
-  },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  buttonSecundario: {
-    borderWidth: 1.5,
-    borderColor: "#035AA6",
-    borderRadius: 12,
-    paddingVertical: Spacing.three,
-    alignItems: "center",
-    marginTop: Spacing.two,
-    minHeight: 52,
-    justifyContent: "center",
-    backgroundColor: "#F8FAFC",
-  },
-  buttonTextoSecundario: {
-    color: "#035AA6",
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  loadingContainer: {
-    alignItems: "center",
-    marginVertical: Spacing.two,
-  },
-  chip: {
-    marginTop: Spacing.two,
-    fontSize: 12,
-    fontStyle: "italic",
-  },
-  cardResultado: {
-    padding: Spacing.four,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 14,
-    marginTop: Spacing.three,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  cardAlmacenado: {
-    borderColor: "#D97706",
-  },
-  cardError: {
-    borderColor: "#D93030",
-  },
-  cardDatos: {
-    borderColor: "#035AA6",
-  },
-  badgeOnline: {
-    alignSelf: "flex-start",
-    paddingHorizontal: Spacing.two,
-    paddingVertical: 4,
-    borderRadius: 6,
-    backgroundColor: "#E0F2FE",
-    marginBottom: Spacing.two,
-  },
-  badgeAlmacenado: {
-    alignSelf: "flex-start",
-    paddingHorizontal: Spacing.two,
-    paddingVertical: 4,
-    borderRadius: 6,
-    backgroundColor: "#FEF3C7",
-    marginBottom: Spacing.two,
-  },
-  textoBadge: {
-    fontSize: 11,
-    textTransform: "uppercase",
-    color: "#035AA6",
-  },
-  tituloResultado: {
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: Spacing.half,
-  },
-  mensajeResultado: {
-    fontSize: 13,
-    lineHeight: 18,
-    marginBottom: Spacing.three,
-  },
-  divisor: {
-    height: 1,
-    backgroundColor: "#E2E8F0",
-    marginVertical: Spacing.five,
-  },
-  datos: {
-    gap: Spacing.two,
-    marginBottom: Spacing.three,
-  },
-  fila: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 6,
-    borderBottomWidth: 0.5,
-    borderBottomColor: "#F1F5F9",
-  },
-  etiqueta: {
-    color: "#64748B",
-    flex: 1,
-    paddingRight: Spacing.two,
-    fontSize: 13,
-  },
-  valor: {
-    fontSize: 13,
-    color: "#0F172A",
-    flexShrink: 1,
-    textAlign: "right",
-    fontWeight: "600",
-  },
-  cardBorradorContainer: {
-    borderColor: "#D93030",
-    backgroundColor: "#FEF2F2",
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: Spacing.four,
-    marginBottom: Spacing.four,
-  },
-  borradorHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.one,
-    marginBottom: Spacing.one,
-  },
-  borradorActions: {
-    gap: Spacing.one,
-  },
-});

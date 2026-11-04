@@ -1,3 +1,44 @@
+@import 'tailwindcss';
+@import 'uniwind';
+
+/* Colores fijos de AquaUIO (iguales en claro y oscuro) */
+@theme {
+  --color-primary: #035AA6;
+  --color-primary-secondary: #0367A6;
+  --color-primary-dark: #175073;
+  --color-error: #D93030;
+  --color-canvas: #F2F2F2;
+  --color-borde: #E2E8F0;
+  --color-campo: #F9FAFB;
+  --color-tinta: #1E293B;
+  --color-apagado: #64748B;
+  --color-deshabilitado: #9CC3E6;
+  --color-error-suave: #FEE2E2;
+  --color-exito: #22704F;
+  --color-exito-suave: #E3F3EA;
+  --color-advertencia: #9A6200;
+}
+
+/* Colores que cambian con el tema (equivalen a Colors.light / Colors.dark) */
+@layer theme {
+  :root {
+    @variant light {
+      --color-background: #ffffff;
+      --color-foreground: #000000;
+      --color-element: #F0F0F3;
+      --color-selected: #E0E1E6;
+      --color-muted: #60646C;
+    }
+    @variant dark {
+      --color-background: #000000;
+      --color-foreground: #ffffff;
+      --color-element: #212225;
+      --color-selected: #2E3135;
+      --color-muted: #B0B4BA;
+    }
+  }
+}
+
 :root {
   --font-display:
     Spline Sans, Inter, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji,

@@ -48,7 +48,7 @@ export default function PantallaRecuperar() {
     return (
         <PantallaHoja 
             conVolver
-            titulo={'Recupera\ntu acceso'}
+            titulo={'Recupera tu acceso'}
             bajada="Te enviaremos un enlace para que crees una contraseña nueva.">
         {/*
             Mensaje neutro a propósito: no confirmamos si el correo existe.
